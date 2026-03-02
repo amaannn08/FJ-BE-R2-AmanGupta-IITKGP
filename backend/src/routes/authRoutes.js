@@ -1,108 +1,14 @@
 const express = require('express');
 
 const { query } = require('../db');
-const {
-  validatePassword,
-  validateEmail,
-  hashPassword,
-  comparePassword,
-  generateToken,
-  authenticateToken,
-} = require('../auth');
+const { signup, signin, validateEmail } = require('../controllers/auth.controller');
+const { authenticateToken } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
-router.post('/signup', async (req, res) => {
-  try {
-    const { name, email, password } = req.body || {};
+router.post('/signup', signup);
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (!validateEmail(normalizedEmail)) {
-      return res.status(400).json({ success: false, message: 'Invalid email format.' });
-    }
-
-    const passwordCheck = validatePassword(password);
-    if (!passwordCheck.valid) {
-      return res.status(400).json({ success: false, message: passwordCheck.message });
-    }
-
-    const existing = await query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
-    if (existing.rows.length > 0) {
-      return res.status(409).json({ success: false, message: 'Email is already registered.' });
-    }
-
-    const passwordHash = await hashPassword(password);
-
-    const insertResult = await query(
-      `INSERT INTO users (name, email, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id, name, email, created_at, updated_at`,
-      [name, normalizedEmail, passwordHash],
-    );
-
-    const user = insertResult.rows[0];
-    const token = generateToken({ userId: user.id, email: user.email });
-
-    return res.status(201).json({
-      success: true,
-      data: {
-        user,
-        token,
-      },
-    });
-  } catch (err) {
-    console.error('Error in /signup:', err);
-    return res.status(500).json({ success: false, message: 'Internal server error.' });
-  }
-});
-
-router.post('/signin', async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required.' });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const result = await query(
-      'SELECT id, name, email, password_hash, created_at, updated_at FROM users WHERE email = $1',
-      [normalizedEmail],
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
-    }
-
-    const user = result.rows[0];
-    const passwordMatches = await comparePassword(password, user.password_hash);
-
-    if (!passwordMatches) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
-    }
-
-    const token = generateToken({ userId: user.id, email: user.email });
-
-    delete user.password_hash;
-
-    return res.json({
-      success: true,
-      data: {
-        user,
-        token,
-      },
-    });
-  } catch (err) {
-    console.error('Error in /signin:', err);
-    return res.status(500).json({ success: false, message: 'Internal server error.' });
-  }
-});
+router.post('/signin', signin);
 
 router.get('/getProfile', authenticateToken, async (req, res) => {
   try {
