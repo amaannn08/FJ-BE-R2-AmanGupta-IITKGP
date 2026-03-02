@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 
 const authRoutes = require('./src/routes/authRoutes');
+const categoryRoutes = require('./src/routes/categoryRoutes');
+const transactionRoutes = require('./src/routes/transactionRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,6 +15,8 @@ app.use(express.json());
 
 
 app.use('/', authRoutes);
+app.use('/', categoryRoutes);
+app.use('/', transactionRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

@@ -1,0 +1,289 @@
+const { v4: uuidv4 } = require('uuid');
+
+async function getTransactionModel() {
+  return import('../models/transaction.model.js');
+}
+
+async function getCategoryModel() {
+  return import('../models/category.model.js');
+}
+
+function parseAmount(amount) {
+  const num = typeof amount === 'string' ? Number(amount) : amount;
+  if (!Number.isFinite(num)) {
+    return null;
+  }
+  return num;
+}
+
+function isValidDateString(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime());
+}
+
+async function createTransaction(req, res, next) {
+  try {
+    const userId = req.user && req.user.userId;
+    const {
+      categoryId,
+      type,
+      amount,
+      description,
+      transactionDate,
+    } = req.body || {};
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized.' });
+    }
+
+    if (!categoryId || !type || amount == null || !transactionDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'categoryId, type, amount, and transactionDate are required.',
+      });
+    }
+
+    if (type !== 'income' && type !== 'expense') {
+      return res
+        .status(400)
+        .json({ success: false, message: "Transaction type must be 'income' or 'expense'." });
+    }
+
+    const parsedAmount = parseAmount(amount);
+    if (parsedAmount === null || parsedAmount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Amount must be a non-zero number.',
+      });
+    }
+
+    if (!isValidDateString(transactionDate)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'transactionDate must be a valid date string.' });
+    }
+
+    // Negative amount rules
+    if (type === 'income' && parsedAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Income amount must be positive.',
+      });
+    }
+
+    if (type === 'expense' && parsedAmount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Expense amount cannot be zero.',
+      });
+    }
+
+    const { findCategoryByIdForUser } = await getCategoryModel();
+
+    const category = await findCategoryByIdForUser({
+      category_id: categoryId,
+      user_id: userId,
+    });
+
+    if (!category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid category for this user.',
+      });
+    }
+
+    if (category.type !== type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Transaction type must match category type.',
+      });
+    }
+
+    const { createTransaction: createTransactionModel } = await getTransactionModel();
+
+    const id = uuidv4();
+
+    const transaction = await createTransactionModel({
+      id,
+      user_id: userId,
+      category_id: categoryId,
+      type,
+      amount: parsedAmount,
+      description,
+      transaction_date: transactionDate,
+    });
+
+    return res.status(201).json({ success: true, data: transaction });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function updateTransaction(req, res, next) {
+  try {
+    const userId = req.user && req.user.userId;
+    const transactionId = req.params && req.params.id;
+    const {
+      categoryId,
+      type,
+      amount,
+      description,
+      transactionDate,
+    } = req.body || {};
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized.' });
+    }
+
+    if (!transactionId) {
+      return res.status(400).json({ success: false, message: 'Transaction id is required.' });
+    }
+
+    if (!categoryId || !type || amount == null || !transactionDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'categoryId, type, amount, and transactionDate are required.',
+      });
+    }
+
+    if (type !== 'income' && type !== 'expense') {
+      return res
+        .status(400)
+        .json({ success: false, message: "Transaction type must be 'income' or 'expense'." });
+    }
+
+    const parsedAmount = parseAmount(amount);
+    if (parsedAmount === null || parsedAmount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Amount must be a non-zero number.',
+      });
+    }
+
+    if (!isValidDateString(transactionDate)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'transactionDate must be a valid date string.' });
+    }
+
+    if (type === 'income' && parsedAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Income amount must be positive.',
+      });
+    }
+
+    if (type === 'expense' && parsedAmount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Expense amount cannot be zero.',
+      });
+    }
+
+    const { findCategoryByIdForUser } = await getCategoryModel();
+
+    const category = await findCategoryByIdForUser({
+      category_id: categoryId,
+      user_id: userId,
+    });
+
+    if (!category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid category for this user.',
+      });
+    }
+
+    if (category.type !== type) {
+      return res.status(400).json({
+        success: false,
+        message: 'Transaction type must match category type.',
+      });
+    }
+
+    const { updateTransaction: updateTransactionModel } = await getTransactionModel();
+
+    const updated = await updateTransactionModel({
+      id: transactionId,
+      user_id: userId,
+      category_id: categoryId,
+      type,
+      amount: parsedAmount,
+      description,
+      transaction_date: transactionDate,
+    });
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Transaction not found.' });
+    }
+
+    return res.json({ success: true, data: updated });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function deleteTransaction(req, res, next) {
+  try {
+    const userId = req.user && req.user.userId;
+    const transactionId = req.params && req.params.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized.' });
+    }
+
+    if (!transactionId) {
+      return res.status(400).json({ success: false, message: 'Transaction id is required.' });
+    }
+
+    const { deleteTransaction: deleteTransactionModel } = await getTransactionModel();
+
+    const deleted = await deleteTransactionModel({
+      id: transactionId,
+      user_id: userId,
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Transaction not found.' });
+    }
+
+    return res.json({ success: true, message: 'Transaction deleted successfully.' });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function getTransactions(req, res, next) {
+  try {
+    const userId = req.user && req.user.userId;
+    const { from, to, categoryId } = req.query || {};
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized.' });
+    }
+
+    const { getTransactionsByUser } = await getTransactionModel();
+
+    const transactions = await getTransactionsByUser({
+      user_id: userId,
+      fromDate: from,
+      toDate: to,
+      category_id: categoryId,
+    });
+
+    return res.json({ success: true, data: transactions });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = {
+  createTransaction,
+  updateTransaction,
+  deleteTransaction,
+  getTransactions,
+};
+
