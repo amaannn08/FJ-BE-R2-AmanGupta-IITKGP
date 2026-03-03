@@ -104,14 +104,13 @@ async function signup(req, res, next) {
     );
 
     const user = insertResult.rows[0];
-    const token = generateToken({ userId: user.id, email: user.email });
 
     return res.status(201).json({
       success: true,
       data: {
         user,
-        token,
       },
+      message: 'Signup successful. Please verify your email using the OTP sent to your email address.',
     });
   } catch (err) {
     return next(err);
@@ -131,7 +130,9 @@ async function signin(req, res, next) {
     const normalizedEmail = email.trim().toLowerCase();
 
     const result = await query(
-      'SELECT id, name, email, password_hash, created_at, updated_at FROM users WHERE email = $1',
+      `SELECT id, name, email, password_hash, created_at, updated_at, email_verified
+       FROM users
+       WHERE email = $1`,
       [normalizedEmail],
     );
 
@@ -144,6 +145,13 @@ async function signin(req, res, next) {
 
     if (!passwordMatches) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+    }
+
+    if (user.email_verified === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email before signing in.',
+      });
     }
 
     const token = generateToken({ userId: user.id, email: user.email });

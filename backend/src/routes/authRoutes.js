@@ -2,6 +2,7 @@ const express = require('express');
 
 const { query } = require('../db');
 const { signup, signin, validateEmail } = require('../controllers/auth.controller');
+const { sendOtp, verifyOtp } = require('../controllers/otp.controller');
 const { authenticateToken } = require('../middleware/auth.middleware');
 
 const router = express.Router();
@@ -9,6 +10,10 @@ const router = express.Router();
 router.post('/signup', signup);
 
 router.post('/signin', signin);
+
+router.post('/auth/send-otp', sendOtp);
+
+router.post('/auth/verify-otp', verifyOtp);
 
 router.get('/getProfile', authenticateToken, async (req, res) => {
   try {
