@@ -23,11 +23,23 @@ async function createCategory(req, res, next) {
         .json({ success: false, message: "Category type must be 'income' or 'expense'." });
     }
 
+    const normalizedName = name.trim().toLowerCase();
+
+    const existing = await categoryModel.findCategoryByNameForUser({
+      user_id: userId,
+      type,
+      normalized_name: normalizedName,
+    });
+
+    if (existing) {
+      return res.status(200).json({ success: true, data: existing });
+    }
+
     const id = uuidv4();
     const category = await categoryModel.createCategory({
       id,
       user_id: userId,
-      name: name.trim(),
+      name: normalizedName,
       type,
     });
 
@@ -72,10 +84,34 @@ async function updateCategory(req, res, next) {
         .json({ success: false, message: 'Category name is required.' });
     }
 
+    const existing = await categoryModel.findCategoryByIdForUser({
+      category_id: categoryId,
+      user_id: userId,
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Category not found.' });
+    }
+
+    const normalizedName = name.trim().toLowerCase();
+
+    const conflicting = await categoryModel.findConflictingCategoryName({
+      user_id: userId,
+      type: existing.type,
+      normalized_name: normalizedName,
+      exclude_category_id: categoryId,
+    });
+
+    if (conflicting) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Category already exists.' });
+    }
+
     const updated = await categoryModel.updateCategoryName({
       category_id: categoryId,
       user_id: userId,
-      name: name.trim(),
+      name: normalizedName,
     });
 
     if (!updated) {

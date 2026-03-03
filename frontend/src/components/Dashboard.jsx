@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getTransactions, addTransaction, updateTransaction, deleteTransaction } from '../api/transactions';
-import { getCategories, createCategory, updateCategory } from '../api/categories';
+import { getCategories, createCategory, updateCategory, ensureCategoryExists } from '../api/categories';
 import { getDashboardSummary, getDashboardMonthlyTrend } from '../api/dashboard';
-import { getRates } from '../api/rates';
 import RecurringBills from './RecurringBills';
+import { DEFAULT_CATEGORIES } from '../defaultCategories';
 
 function formatDate(str) {
   if (!str) return '—';
@@ -11,12 +11,9 @@ function formatDate(str) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD'];
-const DEFAULT_DISPLAY_CURRENCY = 'INR';
-
-function formatCurrency(n, currency = 'INR') {
-  const code = currency || 'INR';
-  const locale = code === 'INR' ? 'en-IN' : 'en-US';
+function formatCurrency(n) {
+  const locale = 'en-IN';
+  const code = 'INR';
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: code,
@@ -25,38 +22,38 @@ function formatCurrency(n, currency = 'INR') {
   }).format(n);
 }
 
-function convertAmount(amount, fromCurrency, toCurrency, rates) {
-  const n = Number(amount) || 0;
-  if (!rates) return n;
-  const fromRate = rates[fromCurrency] ?? 1;
-  const toRate = rates[toCurrency] ?? 1;
-  return (n * toRate) / fromRate;
-}
-
 export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [rates, setRates] = useState(null);
-  const [displayCurrency, setDisplayCurrency] = useState(DEFAULT_DISPLAY_CURRENCY);
   const [form, setForm] = useState({
     type: 'expense',
     categoryId: '',
     amount: '',
     description: '',
     date: new Date().toISOString().slice(0, 10),
-    currency_code: 'INR',
     newCategoryName: '',
   });
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ type: 'expense', categoryId: '', amount: '', description: '', date: '', currency_code: 'INR' });
+  const [editForm, setEditForm] = useState({ type: 'expense', categoryId: '', amount: '', description: '', date: '' });
   const [filters, setFilters] = useState({ from: '', to: '', categoryId: '' });
   const [summaryFromApi, setSummaryFromApi] = useState(null);
   const [monthlyTrendFromApi, setMonthlyTrendFromApi] = useState(null);
   const [dashboardApiFailed, setDashboardApiFailed] = useState(false);
   const [renameCategoryName, setRenameCategoryName] = useState('');
   const [isRenamingCategory, setIsRenamingCategory] = useState(false);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+  const normalizeTransaction = (t) => {
+    const categoryId = t?.categoryId ?? t?.category_id ?? '';
+    const transactionDate = t?.transactionDate ?? t?.transaction_date ?? t?.date ?? '';
+    return {
+      ...t,
+      categoryId: categoryId != null ? String(categoryId) : '',
+      transactionDate,
+    };
+  };
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -67,9 +64,10 @@ export default function Dashboard() {
         to: filters.to || undefined,
         categoryId: filters.categoryId || undefined,
       });
-      setTransactions(list);
-      if (list.length > 0) {
-        setMessage({ type: 'success', text: `Loaded ${list.length} transaction(s).` });
+      const normalized = Array.isArray(list) ? list.map(normalizeTransaction) : [];
+      setTransactions(normalized);
+      if (normalized.length > 0) {
+        setMessage({ type: 'success', text: `Loaded ${normalized.length} transaction(s).` });
       }
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Failed to load transactions.' });
@@ -81,7 +79,31 @@ export default function Dashboard() {
   const fetchCategories = async () => {
     try {
       const list = await getCategories();
-      setCategories(Array.isArray(list) ? list : []);
+      let updated = Array.isArray(list) ? [...list] : [];
+
+      // Seed default expense categories (food, lifestyle, rent) per user if missing.
+      for (const def of DEFAULT_CATEGORIES) {
+        const existing = updated.find(
+          (c) =>
+            c.type === def.type &&
+            c.name && c.name.trim().toLowerCase() === def.name,
+        );
+        if (!existing) {
+          const created = await ensureCategoryExists({
+            name: def.name,
+            type: def.type,
+            categories: updated,
+          });
+          const alreadyIn = updated.some(
+            (c) => String(c.id) === String(created.id),
+          );
+          if (!alreadyIn) {
+            updated.push(created);
+          }
+        }
+      }
+
+      setCategories(updated);
     } catch (err) {
       setMessage((prev) => (prev.type ? prev : { type: 'error', text: err.message || 'Failed to load categories.' }));
     }
@@ -118,8 +140,9 @@ export default function Dashboard() {
     })
       .then((list) => {
         if (!cancelled) {
-          setTransactions(list);
-          if (list.length > 0) setMessage((prev) => (prev.type ? prev : { type: 'success', text: `Loaded ${list.length} transaction(s).` }));
+          const normalized = Array.isArray(list) ? list.map(normalizeTransaction) : [];
+          setTransactions(normalized);
+          if (normalized.length > 0) setMessage((prev) => (prev.type ? prev : { type: 'success', text: `Loaded ${normalized.length} transaction(s).` }));
         }
       })
       .catch((err) => {
@@ -166,10 +189,6 @@ export default function Dashboard() {
     return () => { cancelled = true };
   }, []);
 
-  useEffect(() => {
-    getRates().then((r) => setRates(r || {}));
-  }, []);
-
   const handleAddTransaction = async (e) => {
     e.preventDefault();
     const amount = parseFloat(form.amount);
@@ -190,7 +209,6 @@ export default function Dashboard() {
         amount,
         description: form.description.trim() || undefined,
         transactionDate: form.date,
-        currency_code: form.currency_code || 'INR',
       });
       setMessage({ type: 'success', text: 'Transaction added.' });
       setForm((f) => ({ ...f, amount: '', description: '', newCategoryName: '' }));
@@ -207,11 +225,10 @@ export default function Dashboard() {
     setEditingId(t.id);
     setEditForm({
       type: t.type,
-      categoryId: t.categoryId || '',
+      categoryId: String(t.categoryId ?? t.category_id ?? ''),
       amount: String(t.amount ?? ''),
       description: t.description || '',
-      date: (t.date || '').slice(0, 10),
-      currency_code: t.currency_code || 'INR',
+      date: (t.transactionDate || t.transaction_date || t.date || '').slice(0, 10),
     });
   };
 
@@ -231,7 +248,6 @@ export default function Dashboard() {
         amount,
         description: editForm.description.trim() || undefined,
         transactionDate: editForm.date,
-        currency_code: editForm.currency_code || 'INR',
       });
       setMessage({ type: 'success', text: 'Transaction updated.' });
       setEditingId(null);
@@ -307,10 +323,10 @@ export default function Dashboard() {
 
   const totalIncomeFallback = transactions
     .filter((t) => t.type === 'income')
-    .reduce((sum, t) => sum + convertAmount(t.amount, t.currencyCode || t.currency_code || 'USD', displayCurrency, rates), 0);
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const totalExpenseFallback = transactions
     .filter((t) => t.type === 'expense')
-    .reduce((sum, t) => sum + convertAmount(t.amount, t.currencyCode || t.currency_code || 'USD', displayCurrency, rates), 0);
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const totalIncome = summaryFromApi != null ? (summaryFromApi.totalIncome || 0) : totalIncomeFallback;
   const totalExpense = summaryFromApi != null ? (summaryFromApi.totalExpense || 0) : totalExpenseFallback;
   const balance = summaryFromApi != null ? (summaryFromApi.netSavings ?? totalIncome - totalExpense) : totalIncomeFallback - totalExpenseFallback;
@@ -318,13 +334,13 @@ export default function Dashboard() {
   const monthlyDataFallback = (() => {
     const byMonth = {};
     transactions.forEach((t) => {
-      const dateValue = t.transactionDate || t.date;
+      const dateValue = t.transactionDate || t.transaction_date || t.date;
       const d = new Date(dateValue);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const converted = convertAmount(t.amount, t.currencyCode || t.currency_code || 'USD', displayCurrency, rates);
+      const n = Number(t.amount) || 0;
       if (!byMonth[key]) byMonth[key] = { income: 0, expense: 0 };
-      if (t.type === 'income') byMonth[key].income += converted;
-      if (t.type === 'expense') byMonth[key].expense += converted;
+      if (t.type === 'income') byMonth[key].income += n;
+      if (t.type === 'expense') byMonth[key].expense += n;
     });
     return Object.entries(byMonth)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -360,37 +376,25 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Summary: three cards + display currency */}
+      {/* Summary: three cards */}
       <section className="mb-6">
-          <div className="mb-2 flex items-center justify-end gap-2">
-            <span className="text-[11px] text-slate-500">View in</span>
-            <select
-              value={displayCurrency}
-              onChange={(e) => setDisplayCurrency(e.target.value)}
-              className="rounded-lg border border-slate-600 bg-slate-800/60 px-2 py-1.5 text-xs text-slate-200 focus:border-emerald-500/60 focus:outline-none"
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
           <div className="grid grid-cols-3 gap-3">
           <div className="rounded-xl border border-slate-700/60 bg-slate-800/50 px-4 py-3">
             <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Income</p>
             <p className="mt-0.5 text-base font-semibold tabular-nums text-emerald-400">
-              {formatCurrency(totalIncome, displayCurrency)}
+              {formatCurrency(totalIncome)}
             </p>
           </div>
           <div className="rounded-xl border border-slate-700/60 bg-slate-800/50 px-4 py-3">
             <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Expense</p>
             <p className="mt-0.5 text-base font-semibold tabular-nums text-rose-400">
-              {formatCurrency(totalExpense, displayCurrency)}
+              {formatCurrency(totalExpense)}
             </p>
           </div>
           <div className="rounded-xl border border-slate-700/60 bg-slate-800/50 px-4 py-3">
             <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Balance</p>
             <p className={`mt-0.5 text-base font-semibold tabular-nums ${balance >= 0 ? 'text-slate-100' : 'text-rose-400'}`}>
-              {formatCurrency(balance, displayCurrency)}
+              {formatCurrency(balance)}
             </p>
           </div>
           </div>
@@ -408,12 +412,12 @@ export default function Dashboard() {
                     <div
                       className="w-full max-w-[12px] rounded-t bg-emerald-500/80 transition-all"
                       style={{ height: `${(m.income / maxBar) * 56}px`, minHeight: m.income > 0 ? '4px' : 0 }}
-                      title={`Income: ${formatCurrency(m.income, displayCurrency)}`}
+                      title={`Income: ${formatCurrency(m.income)}`}
                     />
                     <div
                       className="w-full max-w-[12px] rounded-t bg-rose-500/80 transition-all"
                       style={{ height: `${(m.expense / maxBar) * 56}px`, minHeight: m.expense > 0 ? '4px' : 0 }}
-                      title={`Expense: ${formatCurrency(m.expense, displayCurrency)}`}
+                      title={`Expense: ${formatCurrency(m.expense)}`}
                     />
                   </div>
                   <span className="text-[10px] text-slate-500">{m.period}</span>
@@ -481,16 +485,12 @@ export default function Dashboard() {
                     ))}
                   </select>
                   <div className="mt-2 flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder={`New ${form.type} category`}
-                      value={form.newCategoryName}
-                      onChange={(e) => setForm((f) => ({ ...f, newCategoryName: e.target.value }))}
-                      className={inputClass}
-                    />
                     <button
                       type="button"
-                      onClick={handleCreateCategory}
+                      onClick={() => {
+                        setIsAddingCategory((prev) => !prev);
+                        setIsRenamingCategory(false);
+                      }}
                       disabled={loading}
                       className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700/60 disabled:opacity-50"
                     >
@@ -506,7 +506,8 @@ export default function Dashboard() {
                             (c) => String(c.id) === String(form.categoryId),
                           );
                           setRenameCategoryName(selected?.name || '');
-                          setIsRenamingCategory(true);
+                          setIsRenamingCategory((prev) => !prev);
+                          setIsAddingCategory(false);
                         }}
                         className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/60 disabled:opacity-50"
                         aria-label="Rename selected category"
@@ -527,6 +528,38 @@ export default function Dashboard() {
                       </button>
                     )}
                   </div>
+                  {isAddingCategory && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder={`New ${form.type} category`}
+                        value={form.newCategoryName}
+                        onChange={(e) => setForm((f) => ({ ...f, newCategoryName: e.target.value }))}
+                        className={inputClass}
+                      />
+                      <button
+                        type="button"
+                        disabled={loading || !form.newCategoryName.trim()}
+                        onClick={handleCreateCategory}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/60 text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-50"
+                        aria-label="Save new category"
+                      >
+                        <span className="text-lg leading-none">✓</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setIsAddingCategory(false);
+                          setForm((f) => ({ ...f, newCategoryName: '' }));
+                        }}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-slate-400 hover:bg-slate-700/60 disabled:opacity-50"
+                        aria-label="Cancel add category"
+                      >
+                        <span className="text-lg leading-none">×</span>
+                      </button>
+                    </div>
+                  )}
                   {isRenamingCategory && form.categoryId && (
                     <div className="mt-2 flex items-center gap-2">
                       <input
@@ -601,21 +634,6 @@ export default function Dashboard() {
                     onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
                     className={inputClass}
                   />
-                </div>
-                <div>
-                  <label htmlFor="currency" className="mb-1 block text-[11px] font-medium text-slate-500">
-                    Currency
-                  </label>
-                  <select
-                    id="currency"
-                    value={form.currency_code}
-                    onChange={(e) => setForm((f) => ({ ...f, currency_code: e.target.value }))}
-                    className={inputClass}
-                  >
-                    {CURRENCIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
                 </div>
                 <div>
                   <label htmlFor="description" className="mb-1 block text-[11px] font-medium text-slate-500">
@@ -746,15 +764,6 @@ export default function Dashboard() {
                               onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
                               className={inputClass + ' w-36'}
                             />
-                            <select
-                              value={editForm.currency_code}
-                              onChange={(e) => setEditForm((f) => ({ ...f, currency_code: e.target.value }))}
-                              className={inputClass + ' w-20'}
-                            >
-                              {CURRENCIES.map((c) => (
-                                <option key={c} value={c}>{c}</option>
-                              ))}
-                            </select>
                           </div>
                           <input
                             type="text"
@@ -764,8 +773,16 @@ export default function Dashboard() {
                             className={inputClass}
                           />
                           <div className="flex gap-2">
-                            <button type="submit" disabled={loading} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-500 disabled:opacity-50">
-                              Save
+                            <button
+                              type="submit"
+                              disabled={loading}
+                              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-500 disabled:opacity-50"
+                              aria-label="Save changes"
+                              title="Save"
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
                             </button>
                             <button type="button" onClick={() => setEditingId(null)} className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-300">
                               Cancel
@@ -788,7 +805,7 @@ export default function Dashboard() {
                             {t.description && (
                               <p className="truncate text-xs text-slate-500">{t.description}</p>
                             )}
-                            <p className="text-xs text-slate-500">{formatDate(t.transactionDate || t.date)}</p>
+                            <p className="text-xs text-slate-500">{formatDate(t.transactionDate || t.transaction_date || t.date)}</p>
                           </div>
                           <p
                             className={`shrink-0 text-sm font-semibold tabular-nums ${
@@ -796,14 +813,41 @@ export default function Dashboard() {
                             }`}
                           >
                             {t.type === 'income' ? '+' : '−'}
-                            {formatCurrency(
-                              convertAmount(t.amount, t.currencyCode || t.currency_code || 'USD', displayCurrency, rates),
-                              displayCurrency,
-                            )}
+                            {formatCurrency(Number(t.amount) || 0)}
                           </p>
                           <div className="flex shrink-0 flex-wrap items-center gap-1">
-                            <button type="button" onClick={() => handleEdit(t)} className="rounded p-1.5 text-slate-400 hover:bg-slate-600 hover:text-slate-200" title="Edit">Edit</button>
-                            <button type="button" onClick={() => handleDelete(t.id)} className="rounded p-1.5 text-slate-400 hover:bg-rose-500/20 hover:text-rose-400" title="Delete">Delete</button>
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(t)}
+                              className="rounded p-1.5 text-slate-400 hover:bg-slate-600 hover:text-slate-200"
+                              aria-label="Edit transaction"
+                              title="Edit"
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15.232 5.232a2.5 2.5 0 113.536 3.536L8.5 19.036 4 20l.964-4.5 10.268-10.268z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(t.id)}
+                              className="rounded p-1.5 text-slate-400 hover:bg-rose-500/20 hover:text-rose-400"
+                              aria-label="Delete transaction"
+                              title="Delete"
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3m-4 0h14"
+                                />
+                              </svg>
+                            </button>
                           </div>
                         </div>
                       )}

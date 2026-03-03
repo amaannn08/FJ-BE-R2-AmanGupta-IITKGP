@@ -48,3 +48,26 @@ export async function updateCategory(id, { name }) {
   return apiPut(`/categories/${id}`, payload)
 }
 
+export function normalizeCategoryName(value) {
+  if (typeof value !== 'string') return ''
+  return value.trim().toLowerCase()
+}
+
+export async function ensureCategoryExists({ name, type, categories }) {
+  const normalizedTarget = normalizeCategoryName(name)
+  const existingList = Array.isArray(categories) ? categories : []
+
+  const found = existingList.find(
+    (c) =>
+      normalizeCategoryName(c.name) === normalizedTarget &&
+      c.type === type,
+  )
+
+  if (found) {
+    return found
+  }
+
+  const created = await createCategory({ name, type })
+  return created
+}
+

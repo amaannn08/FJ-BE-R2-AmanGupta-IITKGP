@@ -12,6 +12,21 @@ async function createCategory({ id, user_id, name, type }) {
   return rows[0];
 }
 
+async function findCategoryByNameForUser({ user_id, type, normalized_name }) {
+  const text = `
+    SELECT id, user_id, name, type, created_at
+    FROM categories
+    WHERE user_id = $1
+      AND type = $2
+      AND LOWER(name) = $3
+    LIMIT 1
+  `;
+  const values = [user_id, type, normalized_name];
+
+  const { rows } = await pool.query(text, values);
+  return rows[0] || null;
+}
+
 async function getCategoriesByUser(user_id) {
   const text = `
     SELECT id, user_id, name, type, created_at
@@ -51,6 +66,22 @@ async function updateCategoryName({ category_id, user_id, name }) {
   return rows[0] || null;
 }
 
+async function findConflictingCategoryName({ user_id, type, normalized_name, exclude_category_id }) {
+  const text = `
+    SELECT id, user_id, name, type, created_at
+    FROM categories
+    WHERE user_id = $1
+      AND type = $2
+      AND LOWER(name) = $3
+      AND id <> $4
+    LIMIT 1
+  `;
+  const values = [user_id, type, normalized_name, exclude_category_id];
+
+  const { rows } = await pool.query(text, values);
+  return rows[0] || null;
+}
+
 async function deleteCategory({ category_id, user_id }) {
   const checkText = `
     SELECT COUNT(*)::int AS tx_count
@@ -83,7 +114,9 @@ module.exports = {
   createCategory,
   getCategoriesByUser,
   findCategoryByIdForUser,
+  findCategoryByNameForUser,
   updateCategoryName,
+  findConflictingCategoryName,
   deleteCategory,
 };
 
