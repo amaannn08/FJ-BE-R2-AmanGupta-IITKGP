@@ -55,8 +55,8 @@ export default function Dashboard() {
   const [summaryFromApi, setSummaryFromApi] = useState(null);
   const [monthlyTrendFromApi, setMonthlyTrendFromApi] = useState(null);
   const [dashboardApiFailed, setDashboardApiFailed] = useState(false);
-  const [renameCategoryId, setRenameCategoryId] = useState('');
   const [renameCategoryName, setRenameCategoryName] = useState('');
+  const [isRenamingCategory, setIsRenamingCategory] = useState(false);
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -99,6 +99,13 @@ export default function Dashboard() {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (!form.categoryId) {
+      setIsRenamingCategory(false);
+      setRenameCategoryName('');
+    }
+  }, [form.categoryId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -473,7 +480,7 @@ export default function Dashboard() {
                       </option>
                     ))}
                   </select>
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-2 flex items-center gap-2">
                     <input
                       type="text"
                       placeholder={`New ${form.type} category`}
@@ -485,56 +492,89 @@ export default function Dashboard() {
                       type="button"
                       onClick={handleCreateCategory}
                       disabled={loading}
-                      className="whitespace-nowrap rounded-lg border border-slate-600 px-3 py-2 text-xs text-slate-200 hover:bg-slate-700/60 disabled:opacity-50"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700/60 disabled:opacity-50"
                     >
-                      Add
+                      <span className="text-lg leading-none">+</span>
+                      <span className="sr-only">Add category</span>
                     </button>
-                  </div>
-                  <div className="mt-3 border-t border-slate-700/60 pt-3">
-                    <p className="mb-1 text-[11px] font-medium text-slate-500">Rename category</p>
-                    <div className="flex gap-2">
-                      <select
-                        value={renameCategoryId}
-                        onChange={(e) => setRenameCategoryId(e.target.value)}
-                        className={inputClass}
+                    {form.categoryId && (
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          const selected = categories.find(
+                            (c) => String(c.id) === String(form.categoryId),
+                          );
+                          setRenameCategoryName(selected?.name || '');
+                          setIsRenamingCategory(true);
+                        }}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/60 disabled:opacity-50"
+                        aria-label="Rename selected category"
                       >
-                        <option value="">Select category</option>
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15.232 5.232a2.5 2.5 0 113.536 3.536L8.5 19.036 4 20l.964-4.5 10.268-10.268z"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {isRenamingCategory && form.categoryId && (
+                    <div className="mt-2 flex items-center gap-2">
                       <input
                         type="text"
-                        placeholder="New name"
+                        placeholder="New category name"
                         value={renameCategoryName}
                         onChange={(e) => setRenameCategoryName(e.target.value)}
                         className={inputClass}
                       />
-                    </div>
-                    <button
-                      type="button"
-                      disabled={loading || !renameCategoryId || !renameCategoryName.trim()}
-                      onClick={async () => {
-                        try {
-                          setLoading(true);
-                          setMessage({ type: '', text: '' });
-                          await updateCategory(renameCategoryId, { name: renameCategoryName });
-                          await fetchCategories();
+                      <button
+                        type="button"
+                        disabled={loading || !renameCategoryName.trim()}
+                        onClick={async () => {
+                          try {
+                            setLoading(true);
+                            setMessage({ type: '', text: '' });
+                            await updateCategory(form.categoryId, { name: renameCategoryName });
+                            await fetchCategories();
+                            setIsRenamingCategory(false);
+                            setMessage({ type: 'success', text: 'Category renamed.' });
+                          } catch (err) {
+                            setMessage({
+                              type: 'error',
+                              text: err.message || 'Failed to rename category.',
+                            });
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/60 text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-50"
+                        aria-label="Save category name"
+                      >
+                        <span className="text-lg leading-none">✓</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setIsRenamingCategory(false);
                           setRenameCategoryName('');
-                          setMessage({ type: 'success', text: 'Category renamed.' });
-                        } catch (err) {
-                          setMessage({ type: 'error', text: err.message || 'Failed to rename category.' });
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                      className="mt-2 rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-700/60 disabled:opacity-50"
-                    >
-                      Rename
-                    </button>
-                  </div>
+                        }}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-slate-400 hover:bg-slate-700/60 disabled:opacity-50"
+                        aria-label="Cancel rename"
+                      >
+                        <span className="text-lg leading-none">×</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="amount" className="mb-1 block text-[11px] font-medium text-slate-500">
