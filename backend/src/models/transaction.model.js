@@ -1,6 +1,6 @@
-import { pool } from '../config/db.js';
+const { pool } = require('../db');
 
-export async function createTransaction({
+async function createTransaction({
   id,
   user_id,
   category_id,
@@ -37,7 +37,7 @@ export async function createTransaction({
   return rows[0];
 }
 
-export async function updateTransaction({
+async function updateTransaction({
   id,
   user_id,
   category_id,
@@ -74,7 +74,7 @@ export async function updateTransaction({
   return rows[0] || null;
 }
 
-export async function deleteTransaction({ id, user_id }) {
+async function deleteTransaction({ id, user_id }) {
   const text = `
     DELETE FROM transactions
     WHERE id = $1 AND user_id = $2
@@ -86,7 +86,7 @@ export async function deleteTransaction({ id, user_id }) {
   return rowCount > 0;
 }
 
-export async function getTransactionsByUser({
+async function getTransactionsByUser({
   user_id,
   fromDate,
   toDate,
@@ -126,4 +126,11 @@ export async function getTransactionsByUser({
   const { rows } = await pool.query(text, values);
   return rows;
 }
+
+module.exports = {
+  createTransaction,
+  updateTransaction,
+  deleteTransaction,
+  getTransactionsByUser,
+};
 

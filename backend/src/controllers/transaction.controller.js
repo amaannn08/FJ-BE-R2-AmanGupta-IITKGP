@@ -1,12 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 
-async function getTransactionModel() {
-  return import('../models/transaction.model.js');
-}
-
-async function getCategoryModel() {
-  return import('../models/category.model.js');
-}
+const transactionModel = require('../models/transaction.model');
+const categoryModel = require('../models/category.model');
 
 function parseAmount(amount) {
   const num = typeof amount === 'string' ? Number(amount) : amount;
@@ -81,9 +76,7 @@ async function createTransaction(req, res, next) {
       });
     }
 
-    const { findCategoryByIdForUser } = await getCategoryModel();
-
-    const category = await findCategoryByIdForUser({
+    const category = await categoryModel.findCategoryByIdForUser({
       category_id: categoryId,
       user_id: userId,
     });
@@ -102,11 +95,9 @@ async function createTransaction(req, res, next) {
       });
     }
 
-    const { createTransaction: createTransactionModel } = await getTransactionModel();
-
     const id = uuidv4();
 
-    const transaction = await createTransactionModel({
+    const transaction = await transactionModel.createTransaction({
       id,
       user_id: userId,
       category_id: categoryId,
@@ -183,9 +174,7 @@ async function updateTransaction(req, res, next) {
       });
     }
 
-    const { findCategoryByIdForUser } = await getCategoryModel();
-
-    const category = await findCategoryByIdForUser({
+    const category = await categoryModel.findCategoryByIdForUser({
       category_id: categoryId,
       user_id: userId,
     });
@@ -204,9 +193,7 @@ async function updateTransaction(req, res, next) {
       });
     }
 
-    const { updateTransaction: updateTransactionModel } = await getTransactionModel();
-
-    const updated = await updateTransactionModel({
+    const updated = await transactionModel.updateTransaction({
       id: transactionId,
       user_id: userId,
       category_id: categoryId,
@@ -239,9 +226,7 @@ async function deleteTransaction(req, res, next) {
       return res.status(400).json({ success: false, message: 'Transaction id is required.' });
     }
 
-    const { deleteTransaction: deleteTransactionModel } = await getTransactionModel();
-
-    const deleted = await deleteTransactionModel({
+    const deleted = await transactionModel.deleteTransaction({
       id: transactionId,
       user_id: userId,
     });
@@ -265,9 +250,7 @@ async function getTransactions(req, res, next) {
       return res.status(401).json({ success: false, message: 'Unauthorized.' });
     }
 
-    const { getTransactionsByUser } = await getTransactionModel();
-
-    const transactions = await getTransactionsByUser({
+    const transactions = await transactionModel.getTransactionsByUser({
       user_id: userId,
       fromDate: from,
       toDate: to,

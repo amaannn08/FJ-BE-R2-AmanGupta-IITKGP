@@ -1,4 +1,4 @@
-import { pool } from '../config/db.js';
+const { pool } = require('../db');
 
 /**
  * Inserts a new user row into the database.
@@ -9,7 +9,7 @@ import { pool } from '../config/db.js';
  * @param {string} params.password_hash - Hashed password.
  * @returns {Promise<Object>} The created user row (without password_hash), or throws on error.
  */
-export async function createUser({ id, email, username, password_hash }) {
+async function createUser({ id, email, username, password_hash }) {
   const text = `
     INSERT INTO users (id, email, username, password_hash)
     VALUES ($1, $2, $3, $4)
@@ -26,7 +26,7 @@ export async function createUser({ id, email, username, password_hash }) {
  * @param {string} email
  * @returns {Promise<Object|null>} The user row or null if not found.
  */
-export async function findUserByEmail(email) {
+async function findUserByEmail(email) {
   const text = `
     SELECT id, email, username, password_hash, is_deleted, created_at, updated_at
     FROM users
@@ -45,7 +45,7 @@ export async function findUserByEmail(email) {
  * @param {string} id - User UUID.
  * @returns {Promise<Object|null>} The user row or null if not found.
  */
-export async function findUserById(id) {
+async function findUserById(id) {
   const text = `
     SELECT id, email, username, password_hash, is_deleted, created_at, updated_at
     FROM users
@@ -65,7 +65,7 @@ export async function findUserById(id) {
  * @param {string|null} username - New username.
  * @returns {Promise<Object|null>} The updated user row, or null if not found or soft-deleted.
  */
-export async function updateUsername(id, username) {
+async function updateUsername(id, username) {
   const text = `
     UPDATE users
     SET username = $2,
@@ -85,7 +85,7 @@ export async function updateUsername(id, username) {
  * @param {string} id - User UUID.
  * @returns {Promise<boolean>} True if a row was updated, false otherwise.
  */
-export async function softDeleteUser(id) {
+async function softDeleteUser(id) {
   const text = `
     UPDATE users
     SET is_deleted = true,
@@ -99,4 +99,12 @@ export async function softDeleteUser(id) {
   const { rowCount } = await pool.query(text, values);
   return rowCount > 0;
 }
+
+module.exports = {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  updateUsername,
+  softDeleteUser,
+};
 

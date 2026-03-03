@@ -1,8 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 
-async function getCategoryModel() {
-  return import('../models/category.model.js');
-}
+const categoryModel = require('../models/category.model');
 
 async function createCategory(req, res, next) {
   try {
@@ -25,10 +23,8 @@ async function createCategory(req, res, next) {
         .json({ success: false, message: "Category type must be 'income' or 'expense'." });
     }
 
-    const { createCategory: createCategoryModel } = await getCategoryModel();
-
     const id = uuidv4();
-    const category = await createCategoryModel({
+    const category = await categoryModel.createCategory({
       id,
       user_id: userId,
       name: name.trim(),
@@ -49,9 +45,7 @@ async function getCategories(req, res, next) {
       return res.status(401).json({ success: false, message: 'Unauthorized.' });
     }
 
-    const { getCategoriesByUser } = await getCategoryModel();
-
-    const categories = await getCategoriesByUser(userId);
+    const categories = await categoryModel.getCategoriesByUser(userId);
     return res.json({ success: true, data: categories });
   } catch (err) {
     return next(err);
@@ -71,10 +65,8 @@ async function deleteCategory(req, res, next) {
       return res.status(400).json({ success: false, message: 'Category id is required.' });
     }
 
-    const { deleteCategory: deleteCategoryModel } = await getCategoryModel();
-
     try {
-      const deleted = await deleteCategoryModel({
+      const deleted = await categoryModel.deleteCategory({
         category_id: categoryId,
         user_id: userId,
       });

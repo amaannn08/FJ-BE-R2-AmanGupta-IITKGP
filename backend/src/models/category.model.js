@@ -1,6 +1,6 @@
-import { pool } from '../config/db.js';
+const { pool } = require('../db');
 
-export async function createCategory({ id, user_id, name, type }) {
+async function createCategory({ id, user_id, name, type }) {
   const text = `
     INSERT INTO categories (id, user_id, name, type)
     VALUES ($1, $2, $3, $4)
@@ -12,7 +12,7 @@ export async function createCategory({ id, user_id, name, type }) {
   return rows[0];
 }
 
-export async function getCategoriesByUser(user_id) {
+async function getCategoriesByUser(user_id) {
   const text = `
     SELECT id, user_id, name, type, created_at
     FROM categories
@@ -25,7 +25,7 @@ export async function getCategoriesByUser(user_id) {
   return rows;
 }
 
-export async function findCategoryByIdForUser({ category_id, user_id }) {
+async function findCategoryByIdForUser({ category_id, user_id }) {
   const text = `
     SELECT id, user_id, name, type, created_at
     FROM categories
@@ -38,7 +38,7 @@ export async function findCategoryByIdForUser({ category_id, user_id }) {
   return rows[0] || null;
 }
 
-export async function deleteCategory({ category_id, user_id }) {
+async function deleteCategory({ category_id, user_id }) {
   const checkText = `
     SELECT COUNT(*)::int AS tx_count
     FROM transactions
@@ -65,4 +65,11 @@ export async function deleteCategory({ category_id, user_id }) {
   const { rowCount } = await pool.query(deleteText, deleteValues);
   return rowCount > 0;
 }
+
+module.exports = {
+  createCategory,
+  getCategoriesByUser,
+  findCategoryByIdForUser,
+  deleteCategory,
+};
 
