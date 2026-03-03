@@ -4,6 +4,7 @@ import { getCategories, createCategory, updateCategory, ensureCategoryExists } f
 import { getDashboardSummary, getDashboardMonthlyTrend } from '../api/dashboard';
 import RecurringBills from './RecurringBills';
 import { DEFAULT_CATEGORIES } from '../defaultCategories';
+import { useDashboardData, DASHBOARD_CACHE_TTL_MS } from '../context/DashboardDataContext';
 
 function formatDate(str) {
   if (!str) return '—';
@@ -23,8 +24,16 @@ function formatCurrency(n) {
 }
 
 export default function Dashboard() {
-  const [transactions, setTransactions] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const {
+    transactions: cachedTransactions,
+    categories: cachedCategories,
+    filters: cachedFilters,
+    lastLoadedAt = {},
+    setDashboardData,
+  } = useDashboardData();
+
+  const [transactions, setTransactions] = useState(cachedTransactions || []);
+  const [categories, setCategories] = useState(cachedCategories || []);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [form, setForm] = useState({
@@ -37,7 +46,7 @@ export default function Dashboard() {
   });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ type: 'expense', categoryId: '', amount: '', description: '', date: '' });
-  const [filters, setFilters] = useState({ from: '', to: '', categoryId: '' });
+  const [filters, setFilters] = useState(cachedFilters || { from: '', to: '', categoryId: '' });
   const [summaryFromApi, setSummaryFromApi] = useState(null);
   const [monthlyTrendFromApi, setMonthlyTrendFromApi] = useState(null);
   const [dashboardApiFailed, setDashboardApiFailed] = useState(false);
@@ -55,25 +64,63 @@ export default function Dashboard() {
     };
   };
 
-  const fetchTransactions = async () => {
+  const filtersEqual = (a, b) => {
+    if (!a || !b) return false;
+    return a.from === b.from && a.to === b.to && a.categoryId === b.categoryId;
+  };
+
+  const loadTransactions = async ({ ignoreCache = false, cancelRef } = {}) => {
+    const params = {
+      from: filters.from || undefined,
+      to: filters.to || undefined,
+      categoryId: filters.categoryId || undefined,
+    };
+
+    if (!ignoreCache) {
+      const now = Date.now();
+      const hasCachedFilters = cachedFilters && filtersEqual(cachedFilters, filters);
+      const hasCachedTransactions = Array.isArray(cachedTransactions) && cachedTransactions.length > 0;
+      const isFresh =
+        hasCachedTransactions &&
+        hasCachedFilters &&
+        lastLoadedAt.transactions &&
+        now - lastLoadedAt.transactions < DASHBOARD_CACHE_TTL_MS;
+
+      if (isFresh) {
+        const normalized = cachedTransactions.map(normalizeTransaction);
+        if (cancelRef?.current) return;
+        setTransactions(normalized);
+        return;
+      }
+    }
+
     setLoading(true);
     setMessage({ type: '', text: '' });
     try {
-      const list = await getTransactions({
-        from: filters.from || undefined,
-        to: filters.to || undefined,
-        categoryId: filters.categoryId || undefined,
-      });
+      const list = await getTransactions(params);
+      if (cancelRef?.current) return;
       const normalized = Array.isArray(list) ? list.map(normalizeTransaction) : [];
       setTransactions(normalized);
+      setDashboardData({
+        transactions: normalized,
+        filters,
+        lastLoadedAt: { transactions: Date.now() },
+      });
       if (normalized.length > 0) {
         setMessage({ type: 'success', text: `Loaded ${normalized.length} transaction(s).` });
       }
     } catch (err) {
+      if (cancelRef?.current) return;
       setMessage({ type: 'error', text: err.message || 'Failed to load transactions.' });
     } finally {
+      if (cancelRef?.current) return;
       setLoading(false);
     }
+  };
+
+  const fetchTransactions = () => {
+    // Manual refreshes and post-mutation loads should bypass the cache.
+    return loadTransactions({ ignoreCache: true });
   };
 
   const fetchCategories = async () => {
@@ -104,6 +151,10 @@ export default function Dashboard() {
       }
 
       setCategories(updated);
+      setDashboardData({
+        categories: updated,
+        lastLoadedAt: { categories: Date.now() },
+      });
     } catch (err) {
       setMessage((prev) => (prev.type ? prev : { type: 'error', text: err.message || 'Failed to load categories.' }));
     }
@@ -113,13 +164,32 @@ export default function Dashboard() {
     const summaryParams = filters.from && filters.to ? { from: filters.from, to: filters.to } : {};
     getDashboardSummary(summaryParams)
       .then((data) => {
-        if (data) setSummaryFromApi({ totalIncome: Number(data.totalIncome ?? 0), totalExpense: Number(data.totalExpense ?? 0), netSavings: Number(data.netSavings ?? 0) });
+        if (data) {
+          setSummaryFromApi({
+            totalIncome: Number(data.totalIncome ?? 0),
+            totalExpense: Number(data.totalExpense ?? 0),
+            netSavings: Number(data.netSavings ?? 0),
+          });
+        }
       })
       .catch(() => setSummaryFromApi(null));
   };
 
   useEffect(() => {
+    const now = Date.now();
+    const hasFreshCategories =
+      Array.isArray(cachedCategories) &&
+      cachedCategories.length > 0 &&
+      lastLoadedAt.categories &&
+      now - lastLoadedAt.categories < DASHBOARD_CACHE_TTL_MS;
+
+    if (hasFreshCategories) {
+      setCategories(cachedCategories);
+      return;
+    }
+
     fetchCategories();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -130,28 +200,13 @@ export default function Dashboard() {
   }, [form.categoryId]);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setMessage((m) => (m.type ? m : { type: '', text: '' }));
-    getTransactions({
-      from: filters.from || undefined,
-      to: filters.to || undefined,
-      categoryId: filters.categoryId || undefined,
-    })
-      .then((list) => {
-        if (!cancelled) {
-          const normalized = Array.isArray(list) ? list.map(normalizeTransaction) : [];
-          setTransactions(normalized);
-          if (normalized.length > 0) setMessage((prev) => (prev.type ? prev : { type: 'success', text: `Loaded ${normalized.length} transaction(s).` }));
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) setMessage({ type: 'error', text: err.message || 'Failed to load transactions.' });
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true };
+    const cancelRef = { current: false };
+
+    loadTransactions({ cancelRef });
+
+    return () => {
+      cancelRef.current = true;
+    };
   }, [filters.from, filters.to, filters.categoryId]);
 
   useEffect(() => {
@@ -160,7 +215,13 @@ export default function Dashboard() {
     const summaryParams = filters.from && filters.to ? { from: filters.from, to: filters.to } : {};
     getDashboardSummary(summaryParams)
       .then((data) => {
-        if (!cancelled && data) setSummaryFromApi({ totalIncome: Number(data.totalIncome ?? 0), totalExpense: Number(data.totalExpense ?? 0), netSavings: Number(data.netSavings ?? 0) });
+        if (!cancelled && data) {
+          setSummaryFromApi({
+            totalIncome: Number(data.totalIncome ?? 0),
+            totalExpense: Number(data.totalExpense ?? 0),
+            netSavings: Number(data.netSavings ?? 0),
+          });
+        }
       })
       .catch(() => {
         if (!cancelled) {
@@ -168,6 +229,7 @@ export default function Dashboard() {
           setDashboardApiFailed(true);
         }
       });
+
     return () => { cancelled = true };
   }, [filters.from, filters.to]);
 
@@ -176,16 +238,19 @@ export default function Dashboard() {
     getDashboardMonthlyTrend({ months: 6 })
       .then((data) => {
         if (!cancelled && data && Array.isArray(data.points)) {
-          setMonthlyTrendFromApi(data.points.map((p) => ({
-            period: p.month || '',
-            income: Number(p.income ?? 0),
-            expense: Number(p.expense ?? 0),
-          })));
+          setMonthlyTrendFromApi(
+            data.points.map((p) => ({
+              period: p.month || '',
+              income: Number(p.income ?? 0),
+              expense: Number(p.expense ?? 0),
+            })),
+          );
         }
       })
       .catch(() => {
         if (!cancelled) setMonthlyTrendFromApi(null);
       });
+
     return () => { cancelled = true };
   }, []);
 

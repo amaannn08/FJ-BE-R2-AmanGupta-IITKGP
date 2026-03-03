@@ -71,6 +71,16 @@ async function request(path, { method = 'GET', body, params, auth = true, header
       } catch {
         // ignore
       }
+
+      // For protected requests, send the user back to login on auth failures,
+      // but avoid redirect loops on the auth pages themselves.
+      if (auth && typeof window !== 'undefined' && window.location) {
+        const currentPath = window.location.pathname || ''
+        const isAuthPage = currentPath === '/login' || currentPath === '/verify-email'
+        if (!isAuthPage) {
+          window.location.replace('/login')
+        }
+      }
     }
 
     throw new Error(message)

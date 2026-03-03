@@ -8,6 +8,7 @@ import Reports from './components/Reports'
 import Budgets from './components/Budgets'
 import AuthLayout from './components/AuthLayout'
 import { getToken } from './api/auth'
+import { DashboardDataProvider } from './context/DashboardDataContext'
 
 function RequireAuth({ children }) {
   const location = useLocation()
@@ -36,7 +37,9 @@ function App() {
       <Route
         element={
           <RequireAuth>
-            <AuthLayout />
+            <DashboardDataProvider>
+              <AuthLayout />
+            </DashboardDataProvider>
           </RequireAuth>
         }
       >
