@@ -38,6 +38,19 @@ async function findCategoryByIdForUser({ category_id, user_id }) {
   return rows[0] || null;
 }
 
+async function updateCategoryName({ category_id, user_id, name }) {
+  const text = `
+    UPDATE categories
+    SET name = $1, updated_at = NOW()
+    WHERE id = $2 AND user_id = $3
+    RETURNING id, user_id, name, type, created_at, updated_at
+  `;
+  const values = [name, category_id, user_id];
+
+  const { rows } = await pool.query(text, values);
+  return rows[0] || null;
+}
+
 async function deleteCategory({ category_id, user_id }) {
   const checkText = `
     SELECT COUNT(*)::int AS tx_count
@@ -70,6 +83,7 @@ module.exports = {
   createCategory,
   getCategoriesByUser,
   findCategoryByIdForUser,
+  updateCategoryName,
   deleteCategory,
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getTransactions, addTransaction, updateTransaction, deleteTransaction } from '../api/transactions';
-import { getCategories, createCategory } from '../api/categories';
+import { getCategories, createCategory, updateCategory } from '../api/categories';
 import { getDashboardSummary, getDashboardMonthlyTrend } from '../api/dashboard';
 import { getRates } from '../api/rates';
 import RecurringBills from './RecurringBills';
@@ -55,6 +55,8 @@ export default function Dashboard() {
   const [summaryFromApi, setSummaryFromApi] = useState(null);
   const [monthlyTrendFromApi, setMonthlyTrendFromApi] = useState(null);
   const [dashboardApiFailed, setDashboardApiFailed] = useState(false);
+  const [renameCategoryId, setRenameCategoryId] = useState('');
+  const [renameCategoryName, setRenameCategoryName] = useState('');
 
   const fetchTransactions = async () => {
     setLoading(true);
@@ -486,6 +488,51 @@ export default function Dashboard() {
                       className="whitespace-nowrap rounded-lg border border-slate-600 px-3 py-2 text-xs text-slate-200 hover:bg-slate-700/60 disabled:opacity-50"
                     >
                       Add
+                    </button>
+                  </div>
+                  <div className="mt-3 border-t border-slate-700/60 pt-3">
+                    <p className="mb-1 text-[11px] font-medium text-slate-500">Rename category</p>
+                    <div className="flex gap-2">
+                      <select
+                        value={renameCategoryId}
+                        onChange={(e) => setRenameCategoryId(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">Select category</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="New name"
+                        value={renameCategoryName}
+                        onChange={(e) => setRenameCategoryName(e.target.value)}
+                        className={inputClass}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      disabled={loading || !renameCategoryId || !renameCategoryName.trim()}
+                      onClick={async () => {
+                        try {
+                          setLoading(true);
+                          setMessage({ type: '', text: '' });
+                          await updateCategory(renameCategoryId, { name: renameCategoryName });
+                          await fetchCategories();
+                          setRenameCategoryName('');
+                          setMessage({ type: 'success', text: 'Category renamed.' });
+                        } catch (err) {
+                          setMessage({ type: 'error', text: err.message || 'Failed to rename category.' });
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="mt-2 rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-700/60 disabled:opacity-50"
+                    >
+                      Rename
                     </button>
                   </div>
                 </div>

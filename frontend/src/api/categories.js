@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete } from './client.js'
+import { apiGet, apiPost, apiPut, apiDelete } from './client.js'
 
 export async function getCategories() {
   const data = await apiGet('/categories')
@@ -35,5 +35,16 @@ export async function deleteCategory(id) {
     throw new Error('Category id is required.')
   }
   return apiDelete(`/categories/${id}`)
+}
+
+export async function updateCategory(id, { name }) {
+  if (!id) {
+    throw new Error('Category id is required.')
+  }
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    throw new Error('Category name is required.')
+  }
+  const payload = { name: name.trim() }
+  return apiPut(`/categories/${id}`, payload)
 }
 

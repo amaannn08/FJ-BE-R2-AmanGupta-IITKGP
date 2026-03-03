@@ -52,6 +52,42 @@ async function getCategories(req, res, next) {
   }
 }
 
+async function updateCategory(req, res, next) {
+  try {
+    const userId = req.user && req.user.userId;
+    const categoryId = req.params && req.params.id;
+    const { name } = req.body || {};
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized.' });
+    }
+
+    if (!categoryId) {
+      return res.status(400).json({ success: false, message: 'Category id is required.' });
+    }
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Category name is required.' });
+    }
+
+    const updated = await categoryModel.updateCategoryName({
+      category_id: categoryId,
+      user_id: userId,
+      name: name.trim(),
+    });
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Category not found.' });
+    }
+
+    return res.json({ success: true, data: updated });
+  } catch (err) {
+    return next(err);
+  }
+}
+
 async function deleteCategory(req, res, next) {
   try {
     const userId = req.user && req.user.userId;
@@ -90,6 +126,7 @@ async function deleteCategory(req, res, next) {
 module.exports = {
   createCategory,
   getCategories,
+  updateCategory,
   deleteCategory,
 };
 
