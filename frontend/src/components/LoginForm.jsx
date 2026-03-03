@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { login, register, requestEmailOtp } from '../api/auth';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+
 export default function LoginForm({ onLogin, onRegisterComplete }) {
   const [mode, setMode] = useState('login');
   const [name, setName] = useState('');
@@ -50,6 +52,15 @@ export default function LoginForm({ onLogin, onRegisterComplete }) {
       showMessage('error', err.message || 'Something went wrong');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    try {
+      const base = (API_BASE_URL || '').replace(/\/+$/, '');
+      window.location.href = `${base}/auth/google`;
+    } catch {
+      // Best-effort; if something goes wrong just stay on the page.
     }
   };
 
@@ -154,16 +165,16 @@ export default function LoginForm({ onLogin, onRegisterComplete }) {
             {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
           </button>
 
-          {mode === 'login' && (
-            <button
-              type="button"
-              disabled
-              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-500 font-medium cursor-not-allowed"
-              title="Google sign-in will be available when the backend is ready."
-            >
-              <span>Google sign-in (coming soon)</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-100 font-medium hover:bg-slate-800 hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+          >
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-sm bg-white">
+              <span className="text-[11px] font-bold text-slate-900">G</span>
+            </span>
+            <span>Continue with Google</span>
+          </button>
         </form>
 
         <p className="mt-6 text-center text-xs text-slate-500">

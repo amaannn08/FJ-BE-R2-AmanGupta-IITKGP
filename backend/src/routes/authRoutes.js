@@ -3,6 +3,10 @@ const express = require('express');
 const { query } = require('../db');
 const { signup, signin, validateEmail } = require('../controllers/auth.controller');
 const { sendOtp, verifyOtp } = require('../controllers/otp.controller');
+const {
+  googleAuthRedirect,
+  googleAuthCallback,
+} = require('../controllers/googleAuth.controller');
 const { authenticateToken } = require('../middleware/auth.middleware');
 
 const router = express.Router();
@@ -14,6 +18,10 @@ router.post('/signin', signin);
 router.post('/auth/send-otp', sendOtp);
 
 router.post('/auth/verify-otp', verifyOtp);
+
+router.get('/auth/google', googleAuthRedirect);
+
+router.get('/auth/google/callback', googleAuthCallback);
 
 router.get('/getProfile', authenticateToken, async (req, res) => {
   try {

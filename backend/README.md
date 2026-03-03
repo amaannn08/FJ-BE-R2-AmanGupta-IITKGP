@@ -14,6 +14,12 @@ JWT_SECRET=<a-strong-random-secret>
 # Optional overrides
 BCRYPT_SALT_ROUNDS=10
 JWT_EXPIRES_IN=1h
+
+# Google OAuth (optional, for \"Continue with Google\")
+GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
+GOOGLE_CLIENT_SECRET=<your-google-oauth-client-secret>
+GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
+FRONTEND_APP_URL=http://localhost:5173
 ```
 
 > Never commit your `.env` file or share these secrets.
@@ -34,6 +40,10 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
+
+After creating the base `users` table, run the SQL migrations in the `migrations/` folder
+(`npm run migrate:up`) to add email verification support, email OTPs, and Google OAuth
+columns (`google_id`, `avatar_url`, and nullable `password_hash` for Google-only accounts).
 
 ## Routes
 

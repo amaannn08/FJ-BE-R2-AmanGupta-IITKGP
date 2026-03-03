@@ -2,6 +2,7 @@ import React from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
+import GoogleOAuthCallbackPage from './pages/GoogleOAuthCallbackPage'
 import Dashboard from './components/Dashboard'
 import Profile from './components/Profile'
 import Reports from './components/Reports'
@@ -28,6 +29,7 @@ function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/auth/google/callback" element={<GoogleOAuthCallbackPage />} />
 
       <Route
         path="/"
