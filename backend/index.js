@@ -7,6 +7,7 @@ const authRoutes = require('./src/routes/authRoutes');
 const categoryRoutes = require('./src/routes/categoryRoutes');
 const transactionRoutes = require('./src/routes/transactionRoutes');
 const dashboardRoutes = require('./src/routes/dashboardRoutes');
+const reportRoutes = require('./src/routes/reportRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,7 @@ app.use('/', authRoutes);
 app.use('/', categoryRoutes);
 app.use('/', transactionRoutes);
 app.use('/', dashboardRoutes);
+app.use('/', reportRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
