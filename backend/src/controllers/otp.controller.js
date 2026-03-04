@@ -1,8 +1,10 @@
 const { v4: uuidv4 } = require('uuid');
 
-const { generateOtp, sendOtpEmail } = require('../services/email.service');
 const emailOtpModel = require('../models/emailOtp.model');
 const userModel = require('../models/user.model');
+const {
+  sendVerificationEmailForUser,
+} = require('../services/emailVerification.service');
 
 function isValidEmail(email) {
   if (typeof email !== 'string') return false;
@@ -34,19 +36,8 @@ async function sendOtp(req, res, next) {
       });
     }
 
-    const otp = generateOtp();
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes
-
-    await emailOtpModel.createOtp({
-      id: uuidv4(),
-      user_id: user.id,
-      email: normalizedEmail,
-      otp,
-      expires_at: expiresAt,
-    });
-
-    await sendOtpEmail({ to: normalizedEmail, otp });
+    const origin = `${req.protocol}://${req.get('host')}`;
+    await sendVerificationEmailForUser({ user, origin });
 
     return res.json({
       success: true,

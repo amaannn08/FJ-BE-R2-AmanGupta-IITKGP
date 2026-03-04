@@ -25,7 +25,7 @@ function generateOtp() {
   return crypto.randomInt(100000, 999999).toString();
 }
 
-async function sendOtpEmail({ to, otp }) {
+async function sendOtpEmail({ to, otp, verificationLink }) {
   if (!transporter) {
     // Dev fallback: log email instead of throwing
     // eslint-disable-next-line no-console
@@ -45,6 +45,16 @@ async function sendOtpEmail({ to, otp }) {
         ${otp}
       </div>
       <p>This code will expire in 10 minutes.</p>
+      ${
+        verificationLink
+          ? `<p>If you prefer, you can also verify your email by clicking the button below:</p>
+      <p style="margin: 24px 0;">
+        <a href="${verificationLink}" style="display: inline-block; padding: 10px 18px; background-color: #059669; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">
+          Verify my email
+        </a>
+      </p>`
+          : ''
+      }
       <p>If you did not request this, you can safely ignore this email.</p>
     </div>
   `;

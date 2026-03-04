@@ -55,7 +55,20 @@ export default function LoginForm({ onLogin, onRegisterComplete, initialMessage 
         }
       }
     } catch (err) {
-      showMessage('error', err.message || 'Something went wrong');
+      const message = err?.message || 'Something went wrong';
+
+      if (
+        mode === 'login' &&
+        typeof message === 'string' &&
+        message.toLowerCase().includes('verify your email')
+      ) {
+        showMessage('error', message);
+        if (onRegisterComplete && email) {
+          onRegisterComplete(email);
+        }
+      } else {
+        showMessage('error', message);
+      }
     } finally {
       setLoading(false);
     }

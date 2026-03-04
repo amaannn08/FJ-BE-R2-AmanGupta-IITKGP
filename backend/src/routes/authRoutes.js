@@ -1,7 +1,12 @@
 const express = require('express');
 
 const { query } = require('../db');
-const { signup, signin, validateEmail } = require('../controllers/auth.controller');
+const {
+  signup,
+  signin,
+  validateEmail,
+  verifyEmailLink,
+} = require('../controllers/auth.controller');
 const { sendOtp, verifyOtp } = require('../controllers/otp.controller');
 const {
   googleAuthRedirect,
@@ -18,6 +23,8 @@ router.post('/signin', signin);
 router.post('/auth/send-otp', sendOtp);
 
 router.post('/auth/verify-otp', verifyOtp);
+
+router.get('/auth/verify-email-link', verifyEmailLink);
 
 router.get('/auth/google', googleAuthRedirect);
 

@@ -4,6 +4,11 @@ const { query } = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+const userModel = require('../models/user.model');
+const {
+  sendVerificationEmailForUser,
+} = require('../services/emailVerification.service');
+
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
@@ -148,9 +153,20 @@ async function signin(req, res, next) {
     }
 
     if (user.email_verified === false) {
+      try {
+        const origin = `${req.protocol}://${req.get('host')}`;
+        await sendVerificationEmailForUser({ user, origin });
+      } catch (sendErr) {
+        // Log but do not block the response if sending fails
+        // eslint-disable-next-line no-console
+        console.error('Failed to resend verification email on signin:', sendErr);
+      }
+
       return res.status(403).json({
         success: false,
-        message: 'Please verify your email before signing in.',
+        code: 'EMAIL_NOT_VERIFIED_RESENT',
+        message:
+          'Please verify your email before signing in. We have sent a new verification email to your address.',
       });
     }
 
@@ -170,6 +186,46 @@ async function signin(req, res, next) {
   }
 }
 
+async function verifyEmailLink(req, res, next) {
+  try {
+    const { token } = req.query || {};
+
+    if (!token) {
+      return res.status(400).send('Missing verification token.');
+    }
+
+    let payload;
+    try {
+      payload = verifyToken(token);
+    } catch (err) {
+      return res.status(400).send('Invalid or expired verification link.');
+    }
+
+    const { userId, email, purpose } = payload || {};
+    if (!userId || !email || purpose !== 'email_verification') {
+      return res.status(400).send('Invalid verification token payload.');
+    }
+
+    const user = await userModel.findUserById(userId);
+    if (!user) {
+      return res.status(404).send('User not found for this verification link.');
+    }
+
+    await userModel.markEmailVerified(user.id);
+
+    const frontendBase =
+      process.env.FRONTEND_APP_URL || 'http://localhost:5173';
+    const redirectUrl = `${frontendBase.replace(
+      /\/+$/,
+      '',
+    )}/login?emailVerified=1`;
+
+    return res.redirect(302, redirectUrl);
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   signup,
   signin,
@@ -179,5 +235,6 @@ module.exports = {
   comparePassword,
   generateToken,
   verifyToken,
+  verifyEmailLink,
 };
 
