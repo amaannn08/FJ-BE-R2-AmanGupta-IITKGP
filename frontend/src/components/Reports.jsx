@@ -10,6 +10,13 @@ function formatCurrency(n) {
   }).format(n);
 }
 
+function formatPeriod(period) {
+  if (!period) return '—';
+  const d = new Date(period);
+  if (Number.isNaN(d.getTime())) return String(period);
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
 export default function Reports({ onClose }) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -94,10 +101,10 @@ export default function Reports({ onClose }) {
             <tbody>
               {result.data.map((row) => (
                 <tr key={row.period} className="border-b border-slate-700/30">
-                  <td className="px-3 py-2 text-slate-200">{row.period}</td>
+                  <td className="px-3 py-2 text-slate-200">{formatPeriod(row.period)}</td>
                   <td className="px-3 py-2 text-right text-emerald-400">{formatCurrency(row.income)}</td>
                   <td className="px-3 py-2 text-right text-rose-400">{formatCurrency(row.expense)}</td>
-                  <td className="px-3 py-2 text-right text-slate-300">{formatCurrency(row.income - row.expense)}</td>
+                  <td className="px-3 py-2 text-right text-slate-300">{formatCurrency(row.net ?? row.income - row.expense)}</td>
                 </tr>
               ))}
             </tbody>

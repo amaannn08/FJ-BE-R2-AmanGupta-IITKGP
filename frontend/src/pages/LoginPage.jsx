@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getToken, setToken } from '../api/auth';
 import LoginForm from '../components/LoginForm';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [authErrorFromOAuth, setAuthErrorFromOAuth] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -20,6 +21,7 @@ export default function LoginPage() {
 
     if (authError === 'error') {
       window.history.replaceState({}, '', window.location.pathname);
+      setAuthErrorFromOAuth(true);
     }
 
     if (getToken()) {
@@ -35,5 +37,11 @@ export default function LoginPage() {
     navigate('/verify-email', { state: { email } });
   };
 
-  return <LoginForm onLogin={handleLogin} onRegisterComplete={handleRegisterComplete} />;
+  return (
+    <LoginForm
+      onLogin={handleLogin}
+      onRegisterComplete={handleRegisterComplete}
+      initialMessage={authErrorFromOAuth ? { type: 'error', text: 'Sign-in failed. Please try again.' } : null}
+    />
+  );
 }

@@ -154,7 +154,7 @@ export default function Budgets({ onClose }) {
       ) : (
         <div className="space-y-3">
           {progress.map((b) => {
-            const pct = b.limit > 0 ? Math.min(100, (b.spent / b.limit) * 100) : 0;
+            const pct = b.limit > 0 ? Math.max(0, Math.min(100, (b.spent / b.limit) * 100)) : 0;
             return (
               <div key={b.id} className="rounded-lg border border-slate-700/50 bg-slate-800/60 p-3">
                 <div className="flex items-center justify-between gap-2">
@@ -166,6 +166,8 @@ export default function Budgets({ onClose }) {
                     <p className="text-sm text-slate-300">{formatCurrency(b.spent)} / {formatCurrency(b.limit)}</p>
                     {b.isOver ? (
                       <p className="text-xs text-rose-400">Over by {formatCurrency(b.spent - b.limit)}</p>
+                    ) : b.spent < 0 ? (
+                      <p className="text-xs text-emerald-400">Under budget (refunds) · {formatCurrency(b.remaining)} left</p>
                     ) : (
                       <p className="text-xs text-emerald-400">{formatCurrency(b.remaining)} left</p>
                     )}
@@ -174,7 +176,7 @@ export default function Budgets({ onClose }) {
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-700">
                   <div
                     className={`h-full rounded-full transition-all ${b.isOver ? 'bg-rose-500' : 'bg-emerald-500'}`}
-                    style={{ width: `${Math.min(100, pct)}%` }}
+                    style={{ width: `${pct}%` }}
                   />
                 </div>
               </div>

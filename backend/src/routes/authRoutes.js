@@ -28,7 +28,7 @@ router.get('/getProfile', authenticateToken, async (req, res) => {
     const userId = req.user && req.user.userId;
 
     const result = await query(
-      'SELECT id, name, email, created_at, updated_at FROM users WHERE id = $1',
+      'SELECT id, name, email, avatar_url, google_id, created_at, updated_at FROM users WHERE id = $1',
       [userId],
     );
 
@@ -36,7 +36,17 @@ router.get('/getProfile', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
-    return res.json({ success: true, data: result.rows[0] });
+    const row = result.rows[0];
+    const data = {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      avatar_url: row.avatar_url ?? null,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      auth_provider: row.google_id ? 'google' : 'local',
+    };
+    return res.json({ success: true, data });
   } catch (err) {
     console.error('Error in /getProfile:', err);
     return res.status(500).json({ success: false, message: 'Internal server error.' });

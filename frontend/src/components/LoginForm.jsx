@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { login, register, requestEmailOtp } from '../api/auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
-export default function LoginForm({ onLogin, onRegisterComplete }) {
+export default function LoginForm({ onLogin, onRegisterComplete, initialMessage }) {
   const [mode, setMode] = useState('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState(initialMessage || { type: '', text: '' });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialMessage?.text) {
+      setMessage({ type: initialMessage.type || 'error', text: initialMessage.text });
+    }
+  }, [initialMessage]);
 
   const resetForm = () => {
     setName('');

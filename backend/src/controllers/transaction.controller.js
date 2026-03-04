@@ -11,6 +11,10 @@ function parseAmount(amount) {
   return num;
 }
 
+function roundToTwoDecimals(num) {
+  return Math.round(num * 100) / 100;
+}
+
 function isValidDateString(value) {
   if (typeof value !== 'string') {
     return false;
@@ -96,13 +100,14 @@ async function createTransaction(req, res, next) {
     }
 
     const id = uuidv4();
+    const amountRounded = roundToTwoDecimals(parsedAmount);
 
     const transaction = await transactionModel.createTransaction({
       id,
       user_id: userId,
       category_id: categoryId,
       type,
-      amount: parsedAmount,
+      amount: amountRounded,
       description,
       transaction_date: transactionDate,
     });
@@ -193,12 +198,14 @@ async function updateTransaction(req, res, next) {
       });
     }
 
+    const amountRounded = roundToTwoDecimals(parsedAmount);
+
     const updated = await transactionModel.updateTransaction({
       id: transactionId,
       user_id: userId,
       category_id: categoryId,
       type,
-      amount: parsedAmount,
+      amount: amountRounded,
       description,
       transaction_date: transactionDate,
     });
