@@ -4,6 +4,9 @@ import { getCategories, createCategory, updateCategory, ensureCategoryExists } f
 import { getDashboardSummary, getDashboardMonthlyTrend } from '../api/dashboard';
 import { DEFAULT_CATEGORIES } from '../defaultCategories';
 import { useDashboardData, DASHBOARD_CACHE_TTL_MS } from '../context/DashboardDataContext';
+import AddTransactionCard from './AddTransactionCard';
+import MonthlyIncomeExpenseChart from './MonthlyIncomeExpenseChart';
+import RecentTransactionsList from './RecentTransactionsList';
 
 function formatDate(str) {
   if (!str) return '—';
@@ -464,7 +467,18 @@ export default function Dashboard() {
   const monthlyData = Array.isArray(monthlyTrendFromApi) && monthlyTrendFromApi.length > 0
     ? monthlyTrendFromApi
     : monthlyDataFallback;
-  const maxBar = Math.max(1, ...monthlyData.flatMap((m) => [m.income, m.expense]));
+
+  const currentMonthKey = (() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  })();
+
+  const monthlyDataSingle = monthlyData.filter((m) => m.period === currentMonthKey);
+  const monthlyChartData = monthlyDataSingle.length > 0 ? monthlyDataSingle : monthlyData.slice(-1);
+  const maxBar = Math.max(1, ...monthlyChartData.flatMap((m) => [m.income, m.expense]));
+  const isSingleMonthChart = monthlyChartData.length === 1;
 
   const inputClass =
     'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/25';
@@ -514,605 +528,61 @@ export default function Dashboard() {
           </div>
       </section>
 
-      {monthlyData.length > 0 && (
-        <section className="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Income vs expense by month
-            </h2>
-            <div className="flex items-end gap-1 overflow-x-auto pb-2" style={{ minHeight: '80px' }}>
-              {monthlyData.map((m) => (
-                <div key={m.period} className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
-                  <div className="flex w-full gap-0.5 items-end justify-center" style={{ height: '56px' }}>
-                    <div
-                      className="w-full max-w-[12px] rounded-t bg-emerald-500/80 transition-all"
-                      style={{ height: `${(m.income / maxBar) * 56}px`, minHeight: m.income > 0 ? '4px' : 0 }}
-                      title={`Income: ${formatCurrency(m.income)}`}
-                    />
-                    <div
-                      className="w-full max-w-[12px] rounded-t bg-rose-500/80 transition-all"
-                      style={{ height: `${(m.expense / maxBar) * 56}px`, minHeight: m.expense > 0 ? '4px' : 0 }}
-                      title={`Expense: ${formatCurrency(m.expense)}`}
-                    />
-                  </div>
-                  <span className="text-[10px] text-slate-500">{m.period}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 flex gap-4 text-xs text-slate-500">
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded bg-emerald-500/80" /> Income</span>
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded bg-rose-500/80" /> Expense</span>
-            </div>
-        </section>
-      )}
+      {/* Two columns within same container: form has fixed width, right side holds chart + recent list */}
+      <div className="grid gap-8 grid-cols-1 md:grid-cols-[320px_minmax(0,1fr)]">
+        {/* Add transaction card – fixed width on md+ so it doesn’t stretch */}
+        <AddTransactionCard
+          form={form}
+          setForm={setForm}
+          inputClass={inputClass}
+          currentCategoryOptions={currentCategoryOptions}
+          categories={categories}
+          loading={loading}
+          isAddingCategory={isAddingCategory}
+          setIsAddingCategory={setIsAddingCategory}
+          isRenamingCategory={isRenamingCategory}
+          setIsRenamingCategory={setIsRenamingCategory}
+          renameCategoryName={renameCategoryName}
+          setRenameCategoryName={setRenameCategoryName}
+          handleCreateCategory={handleCreateCategory}
+          updateCategory={updateCategory}
+          fetchCategories={fetchCategories}
+          setMessage={setMessage}
+          setLoading={setLoading}
+          handleAddTransaction={handleAddTransaction}
+        />
 
-      {/* Two columns within same container: form has fixed width, list takes rest */}
-      <div className="grid gap-8 grid-cols-[320px_minmax(0,1fr)]">
-        {/* Add transaction card – fixed width on sm+ so it doesn’t stretch */}
-        <section>
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Add transaction
-            </h2>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <form onSubmit={handleAddTransaction} className="space-y-3.5">
-                <div className="grid grid-cols-[1.5fr_auto] gap-2">
-                  <div>
-                  <p className="mb-1.5 text-[11px] font-medium text-slate-500">Type</p>
-                  <div className="flex rounded-lg bg-slate-100 p-1 gap-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setForm((f) => ({ ...f, type: 'income' }))}
-                      className={`flex-1 rounded-md py-2 text-xs font-medium transition-colors ${
-                        form.type === 'income'
-                          ? 'bg-emerald-500/25 text-emerald-400'
-                          : 'text-slate-400 hover:text-slate-300'
-                      }`}
-                    >
-                      Income
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setForm((f) => ({ ...f, type: 'expense' }))}
-                      className={`flex-1 rounded-md py-2 text-xs font-medium transition-colors ${
-                        form.type === 'expense'
-                          ? 'bg-rose-500/25 text-rose-400'
-                          : 'text-slate-400 hover:text-slate-300'
-                      }`}
-                    >
-                      Expense
-                    </button>
-                  </div>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-slate-500">
-                      Currency
-                    </label>
-                    <select
-                      value={form.currencyCode}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          currencyCode: e.target.value || 'INR',
-                        }))
-                      }
-                      className={inputClass}
-                    >
-                      <option value="INR">INR (₹)</option>
-                      <option value="USD">USD ($)</option>
-                      <option value="EUR">EUR (€)</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="category" className="mb-1 block text-[11px] font-medium text-slate-500">
-                    Category
-                  </label>
-                  <select
-                    id="category"
-                    value={form.categoryId}
-                    onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
-                    className={inputClass}
-                  >
-                    <option value="">Select category</option>
-                    {currentCategoryOptions.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="mt-2 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAddingCategory((prev) => !prev);
-                        setIsRenamingCategory(false);
-                      }}
-                      disabled={loading}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-slate-200 hover:bg-slate-700/60 disabled:opacity-50"
-                    >
-                      <span className="text-lg leading-none">+</span>
-                      <span className="sr-only">Add category</span>
-                    </button>
-                    {form.categoryId && (
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => {
-                          const selected = categories.find(
-                            (c) => String(c.id) === String(form.categoryId),
-                          );
-                          setRenameCategoryName(selected?.name || '');
-                          setIsRenamingCategory((prev) => !prev);
-                          setIsAddingCategory(false);
-                        }}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/60 disabled:opacity-50"
-                        aria-label="Rename selected category"
-                      >
-                        <svg
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15.232 5.232a2.5 2.5 0 113.536 3.536L8.5 19.036 4 20l.964-4.5 10.268-10.268z"
-                          />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                  {isAddingCategory && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder={`New ${form.type} category`}
-                        value={form.newCategoryName}
-                        onChange={(e) => setForm((f) => ({ ...f, newCategoryName: e.target.value }))}
-                        className={inputClass}
-                      />
-                      <button
-                        type="button"
-                        disabled={loading || !form.newCategoryName.trim()}
-                        onClick={handleCreateCategory}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/60 text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-50"
-                        aria-label="Save new category"
-                      >
-                        <span className="text-lg leading-none">✓</span>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => {
-                          setIsAddingCategory(false);
-                          setForm((f) => ({ ...f, newCategoryName: '' }));
-                        }}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-slate-400 hover:bg-slate-700/60 disabled:opacity-50"
-                        aria-label="Cancel add category"
-                      >
-                        <span className="text-lg leading-none">×</span>
-                      </button>
-                    </div>
-                  )}
-                  {isRenamingCategory && form.categoryId && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder="New category name"
-                        value={renameCategoryName}
-                        onChange={(e) => setRenameCategoryName(e.target.value)}
-                        className={inputClass}
-                      />
-                      <button
-                        type="button"
-                        disabled={loading || !renameCategoryName.trim()}
-                        onClick={async () => {
-                          try {
-                            setLoading(true);
-                            setMessage({ type: '', text: '' });
-                            await updateCategory(form.categoryId, { name: renameCategoryName });
-                            await fetchCategories();
-                            setIsRenamingCategory(false);
-                            setMessage({ type: 'success', text: 'Category renamed.' });
-                          } catch (err) {
-                            setMessage({
-                              type: 'error',
-                              text: err.message || 'Failed to rename category.',
-                            });
-                          } finally {
-                            setLoading(false);
-                          }
-                        }}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/60 text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-50"
-                        aria-label="Save category name"
-                      >
-                        <span className="text-lg leading-none">✓</span>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => {
-                          setIsRenamingCategory(false);
-                          setRenameCategoryName('');
-                        }}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-600 text-slate-400 hover:bg-slate-700/60 disabled:opacity-50"
-                        aria-label="Cancel rename"
-                      >
-                        <span className="text-lg leading-none">×</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label htmlFor="amount" className="mb-1 block text-[11px] font-medium text-slate-500">
-                    Amount (negative for refunds in expense)
-                  </label>
-                  <input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={form.amount}
-                    onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="date" className="mb-1 block text-[11px] font-medium text-slate-500">
-                    Date
-                  </label>
-                  <input
-                    id="date"
-                    type="date"
-                    value={form.date}
-                    onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                    className={inputClass}
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <label className="inline-flex items-center gap-2 text-[11px] font-medium text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={form.isRecurring}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          isRecurring: e.target.checked,
-                        }))
-                      }
-                      className="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/40"
-                    />
-                    <span>Make this recurring</span>
-                  </label>
-
-                  {form.isRecurring && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-slate-500">Every</span>
-                      <select
-                        value={form.billingCycle}
-                        onChange={(e) =>
-                          setForm((f) => ({
-                            ...f,
-                            billingCycle: e.target.value,
-                          }))
-                        }
-                        className={inputClass + ' w-32'}
-                      >
-                        <option value="monthly">Month</option>
-                        <option value="yearly">Year</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label htmlFor="description" className="mb-1 block text-[11px] font-medium text-slate-500">
-                    Note <span className="text-slate-600">(optional)</span>
-                  </label>
-                  <input
-                    id="description"
-                    type="text"
-                    placeholder="Brief note"
-                    value={form.description}
-                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                    className={inputClass}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading || currentCategoryOptions.length === 0}
-                  className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Adding…' : currentCategoryOptions.length === 0 ? 'Add a category first' : 'Add transaction'}
-                </button>
-              </form>
-            </div>
-        </section>
-
-        {/* Recent transactions – flexible width, same container */}
-        <section className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Recent transactions
-              </h2>
-              <div className="flex flex-wrap items-end gap-2">
-                <div>
-                  <label className="mb-0.5 block text-[11px] text-slate-500">From</label>
-                  <input
-                    type="date"
-                    value={filters.from}
-                    onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
-                    className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 focus:border-emerald-500/60 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-0.5 block text-[11px] text-slate-500">To</label>
-                  <input
-                    type="date"
-                    value={filters.to}
-                    onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
-                    className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 focus:border-emerald-500/60 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-0.5 block text-[11px] text-slate-500">Category</label>
-                  <select
-                    value={filters.categoryId}
-                    onChange={(e) => setFilters((f) => ({ ...f, categoryId: e.target.value }))}
-                    className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 focus:border-emerald-500/60 focus:outline-none min-w-[120px]"
-                  >
-                    <option value="">All</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFilters({ from: '', to: '', categoryId: '' })}
-                  className="rounded-lg border border-slate-600 px-2 py-1.5 text-xs text-slate-400 hover:bg-slate-700/60 hover:text-slate-200"
-                >
-                  Clear
-                </button>
-                <button
-                  type="button"
-                  onClick={fetchTransactions}
-                  disabled={loading}
-                  className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-700/50 hover:text-slate-200 disabled:opacity-50"
-                  title="Refresh list"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
-              {transactions.length === 0 ? (
-                <div className="py-10 text-center">
-                  <p className="text-sm text-slate-500">No transactions yet.</p>
-                  <p className="mt-1 text-xs text-slate-600">Add one with the form or refresh to load existing data.</p>
-                </div>
-              ) : (
-                <ul className="divide-y divide-slate-700/50">
-                  {transactions.map((t) => (
-                    <li key={t.id} className="px-4 py-3 transition-colors hover:bg-slate-700/30">
-                      {editingId === t.id ? (
-                        <form onSubmit={handleEditSubmit} className="space-y-2">
-                          <div className="flex gap-2 flex-wrap">
-                            <select
-                              value={editForm.type}
-                              onChange={(e) => setEditForm((f) => ({ ...f, type: e.target.value }))}
-                              className={inputClass + ' flex-1 min-w-0'}
-                            >
-                              <option value="income">Income</option>
-                              <option value="expense">Expense</option>
-                            </select>
-                            <select
-                              value={editForm.categoryId}
-                              onChange={(e) => setEditForm((f) => ({ ...f, categoryId: e.target.value }))}
-                              className={inputClass + ' flex-1 min-w-0'}
-                            >
-                              <option value="">Select category</option>
-                              {(editForm.type === 'income' ? incomeCategories : expenseCategories).map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {c.name}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="flex gap-2">
-                              <input
-                                type="number"
-                                step="0.01"
-                                placeholder="Amount"
-                                value={editForm.amount}
-                                onChange={(e) => setEditForm((f) => ({ ...f, amount: e.target.value }))}
-                                className={inputClass + ' w-24'}
-                              />
-                              <select
-                                value={editForm.currencyCode}
-                                onChange={(e) =>
-                                  setEditForm((f) => ({
-                                    ...f,
-                                    currencyCode: e.target.value || 'INR',
-                                  }))
-                                }
-                                className={inputClass + ' w-24'}
-                              >
-                                <option value="INR">INR (₹)</option>
-                                <option value="USD">USD ($)</option>
-                                <option value="EUR">EUR (€)</option>
-                              </select>
-                            </div>
-                            <input
-                              type="date"
-                              value={editForm.date}
-                              onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
-                              className={inputClass + ' w-36'}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <label className="inline-flex items-center gap-2 text-[11px] font-medium text-slate-600">
-                              <input
-                                type="checkbox"
-                                checked={editForm.isRecurring}
-                                onChange={(e) =>
-                                  setEditForm((f) => ({
-                                    ...f,
-                                    isRecurring: e.target.checked,
-                                  }))
-                                }
-                                className="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/40"
-                              />
-                              <span>Recurring</span>
-                            </label>
-
-                            {editForm.isRecurring && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-[11px] text-slate-500">Every</span>
-                                <select
-                                  value={editForm.billingCycle}
-                                  onChange={(e) =>
-                                    setEditForm((f) => ({
-                                      ...f,
-                                      billingCycle: e.target.value,
-                                    }))
-                                  }
-                                  className={inputClass + ' w-32'}
-                                >
-                                  <option value="monthly">Month</option>
-                                  <option value="yearly">Year</option>
-                                </select>
-                              </div>
-                            )}
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Note"
-                            value={editForm.description}
-                            onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                            className={inputClass}
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              type="submit"
-                              disabled={loading}
-                              className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-500 disabled:opacity-50"
-                              aria-label="Save changes"
-                              title="Save"
-                            >
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </button>
-                            <button type="button" onClick={() => setEditingId(null)} className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-300">
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-medium ${
-                              t.type === 'income'
-                                ? 'bg-emerald-500/20 text-emerald-400'
-                                : 'bg-rose-500/20 text-rose-400'
-                            }`}
-                          >
-                            {t.type === 'income' ? '+' : '−'}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-slate-200">{t.categoryName || t.category || findCategoryName(t.categoryId)}</p>
-                            {t.description && (
-                              <p className="truncate text-xs text-slate-500">{t.description}</p>
-                            )}
-                            <p className="text-xs text-slate-500">{formatDate(t.transactionDate || t.transaction_date || t.date)}</p>
-                          </div>
-                          <p
-                            className={`shrink-0 text-sm font-semibold tabular-nums ${
-                              t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'
-                            }`}
-                            title={`Original: ${formatCurrency(
-                              Number(t.amount) || 0,
-                              t.currencyCode || 'INR',
-                            )}`}
-                          >
-                            {t.type === 'income' ? '+' : '−'}
-                            {formatCurrency(
-                              Number(t.amount) || 0,
-                              t.currencyCode || 'INR',
-                            )}
-                          </p>
-                          <div className="flex shrink-0 flex-wrap items-center gap-1">
-                            <div className="flex items-center gap-1">
-                              <label className="inline-flex cursor-pointer items-center rounded px-1.5 py-1 text-[11px] text-slate-300 hover:bg-slate-600/60">
-                                <span>Upload receipt</span>
-                                <input
-                                  type="file"
-                                  accept="image/*,application/pdf"
-                                  className="sr-only"
-                                  onChange={(e) => {
-                                    const file = e.target.files && e.target.files[0];
-                                    if (file) {
-                                      handleUploadReceipt(t.id, file);
-                                      // reset so selecting same file again re-triggers change
-                                      e.target.value = '';
-                                    }
-                                  }}
-                                  disabled={uploadingReceiptId === t.id}
-                                />
-                              </label>
-                              {t.receipt_filename && (
-                                <button
-                                  type="button"
-                                  onClick={() => openReceipt(t.id)}
-                                  className="rounded px-1.5 py-1 text-[11px] text-emerald-300 hover:bg-emerald-600/20"
-                                >
-                                  View receipt
-                                </button>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleEdit(t)}
-                              className="rounded p-1.5 text-slate-400 hover:bg-slate-600 hover:text-slate-200"
-                              aria-label="Edit transaction"
-                              title="Edit"
-                            >
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15.232 5.232a2.5 2.5 0 113.536 3.536L8.5 19.036 4 20l.964-4.5 10.268-10.268z"
-                                />
-                              </svg>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(t.id)}
-                              className="rounded p-1.5 text-slate-400 hover:bg-rose-500/20 hover:text-rose-400"
-                              aria-label="Delete transaction"
-                              title="Delete"
-                            >
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3m-4 0h14"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-        </section>
+        {/* Right column: chart on top, scrollable recent transactions below */}
+        <div className="min-w-0 flex flex-col gap-4">
+          <MonthlyIncomeExpenseChart
+            monthlyChartData={monthlyChartData}
+            maxBar={maxBar}
+            isSingleMonthChart={isSingleMonthChart}
+            formatCurrency={formatCurrency}
+          />
+          <RecentTransactionsList
+            transactions={transactions}
+            filters={filters}
+            setFilters={setFilters}
+            categories={categories}
+            loading={loading}
+            editingId={editingId}
+            editForm={editForm}
+            setEditForm={setEditForm}
+            incomeCategories={incomeCategories}
+            expenseCategories={expenseCategories}
+            inputClass={inputClass}
+            handleEditSubmit={handleEditSubmit}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+            handleUploadReceipt={handleUploadReceipt}
+            openReceipt={openReceipt}
+            formatCurrency={formatCurrency}
+            formatDate={formatDate}
+            findCategoryName={findCategoryName}
+            fetchTransactions={fetchTransactions}
+          />
+        </div>
       </div>
 
     </>
