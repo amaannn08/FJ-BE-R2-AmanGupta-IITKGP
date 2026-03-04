@@ -25,9 +25,9 @@ export default function GoogleOAuthCallbackPage() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-slate-900/80 border border-slate-700/60 shadow-xl p-8">
-        <p className="text-sm text-slate-400 text-center">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-xl p-8">
+        <p className="text-sm text-slate-600 text-center">
           Completing Google sign-in&hellip;
         </p>
       </div>

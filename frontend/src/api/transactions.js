@@ -19,19 +19,19 @@ export async function getTransactions({ from, to, categoryId } = {}) {
   return Array.isArray(data) ? data : []
 }
 
-export async function addTransaction({ categoryId, type, amount, description, transactionDate, currency_code }) {
+export async function addTransaction({ categoryId, type, amount, description, transactionDate, currencyCode } = {}) {
   const payload = {
     categoryId,
     type,
     amount,
     description,
     transactionDate,
-    currencyCode: currency_code,
+    currencyCode: currencyCode || 'INR',
   }
   return apiPost('/transactions', payload)
 }
 
-export async function updateTransaction(id, { categoryId, type, amount, description, transactionDate, currency_code }) {
+export async function updateTransaction(id, { categoryId, type, amount, description, transactionDate, currencyCode } = {}) {
   if (!id) {
     throw new Error('Transaction id is required.')
   }
@@ -41,7 +41,7 @@ export async function updateTransaction(id, { categoryId, type, amount, descript
     amount,
     description,
     transactionDate,
-    currencyCode: currency_code,
+    currencyCode: currencyCode || 'INR',
   }
   return apiPut(`/transactions/${id}`, payload)
 }

@@ -71,23 +71,23 @@ export default function LoginForm({ onLogin, onRegisterComplete, initialMessage 
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-slate-900/80 border border-slate-700/60 shadow-xl p-8">
-        <h1 className="text-2xl font-semibold text-slate-100 text-center mb-2">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-xl p-8">
+        <h1 className="text-2xl font-semibold text-slate-900 text-center mb-2">
           Finance Tracker
         </h1>
-        <p className="text-slate-400 text-sm text-center mb-6">
+        <p className="text-slate-600 text-sm text-center mb-6">
           {mode === 'login' ? 'Sign in to your account' : 'Create an account'}
         </p>
 
-        <div className="flex rounded-lg bg-slate-800/60 p-1 mb-6">
+        <div className="flex rounded-lg bg-slate-100 p-1 mb-6">
           <button
             type="button"
             onClick={() => switchMode('login')}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
               mode === 'login'
-                ? 'bg-slate-700 text-slate-100 shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-slate-900 text-white shadow'
+                : 'text-slate-500 hover:text-slate-900'
             }`}
           >
             Login
@@ -95,10 +95,10 @@ export default function LoginForm({ onLogin, onRegisterComplete, initialMessage 
           <button
             type="button"
             onClick={() => switchMode('register')}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
               mode === 'register'
-                ? 'bg-slate-700 text-slate-100 shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-slate-900 text-white shadow'
+                : 'text-slate-500 hover:text-slate-900'
             }`}
           >
             Register
@@ -108,7 +108,7 @@ export default function LoginForm({ onLogin, onRegisterComplete, initialMessage 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'register' && (
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-1">
+              <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-1">
                 Name
               </label>
               <input
@@ -118,12 +118,12 @@ export default function LoginForm({ onLogin, onRegisterComplete, initialMessage 
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
                 required={mode === 'register'}
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+                className="w-full px-4 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500"
               />
             </div>
           )}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1">
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
               Email
             </label>
             <input
@@ -133,11 +133,11 @@ export default function LoginForm({ onLogin, onRegisterComplete, initialMessage 
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+              className="w-full px-4 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500"
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
               Password
             </label>
             <input
@@ -147,7 +147,7 @@ export default function LoginForm({ onLogin, onRegisterComplete, initialMessage 
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+              className="w-full px-4 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500"
             />
           </div>
 
@@ -155,8 +155,8 @@ export default function LoginForm({ onLogin, onRegisterComplete, initialMessage 
             <div
               className={`rounded-lg px-4 py-2.5 text-sm ${
                 message.type === 'success'
-                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-500/40'
+                  : 'bg-red-50 text-red-700 border border-red-500/40'
               }`}
             >
               {message.text}
@@ -166,7 +166,7 @@ export default function LoginForm({ onLogin, onRegisterComplete, initialMessage 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+            className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-100"
           >
             {loading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
           </button>
@@ -174,7 +174,7 @@ export default function LoginForm({ onLogin, onRegisterComplete, initialMessage 
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-100 font-medium hover:bg-slate-800 hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 font-medium hover:bg-slate-50 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-100"
           >
             <span className="inline-flex h-5 w-5 items-center justify-center rounded-sm bg-white">
               <span className="text-[11px] font-bold text-slate-900">G</span>

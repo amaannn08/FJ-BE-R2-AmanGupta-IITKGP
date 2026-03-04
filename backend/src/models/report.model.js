@@ -12,8 +12,8 @@ async function getMonthlyIncomeExpense({ user_id, fromDate, toDate }) {
     agg AS (
       SELECT
         date_trunc('month', transaction_date)::date AS month,
-        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) AS income,
-        SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS expense
+        SUM(CASE WHEN type = 'income' THEN amount_in_base ELSE 0 END) AS income,
+        SUM(CASE WHEN type = 'expense' THEN amount_in_base ELSE 0 END) AS expense
       FROM transactions
       WHERE user_id = $1
         AND transaction_date BETWEEN $2 AND $3

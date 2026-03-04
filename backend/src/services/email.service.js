@@ -79,9 +79,9 @@ async function sendMail({ to, subject, html }) {
 function formatCurrency(amount) {
   const n = Number(amount);
   if (!Number.isFinite(n)) return String(amount);
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'INR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(n);

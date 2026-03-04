@@ -14,22 +14,22 @@ function AuthLayoutInner() {
   }
 
   const linkBase =
-    'rounded-lg border border-slate-600 bg-slate-800/60 px-3.5 py-2 text-xs font-medium transition-colors'
+    'rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-medium transition-colors'
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <p className="text-sm text-slate-500">Loading profile…</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <header className="sticky top-0 z-10 border-b border-slate-700/80 bg-slate-950/98 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-5">
+    <div className="min-h-screen bg-slate-100">
+      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-8">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -39,7 +39,7 @@ function AuthLayoutInner() {
                 />
               </svg>
             </div>
-            <span className="text-sm font-semibold text-slate-100">Finance Tracker</span>
+            <span className="text-base font-semibold text-slate-900">Finance Tracker</span>
           </div>
           <div className="flex items-center gap-2">
             <NavLink
@@ -47,8 +47,8 @@ function AuthLayoutInner() {
               className={({ isActive }) =>
                 `${linkBase} ${
                   isActive
-                    ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-300'
-                    : 'text-slate-300 hover:border-slate-500 hover:bg-slate-700/80 hover:text-slate-100'
+                    ? 'border-emerald-500/60 bg-emerald-50 text-emerald-700'
+                    : 'text-slate-700 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900'
                 }`
               }
             >
@@ -59,8 +59,8 @@ function AuthLayoutInner() {
               className={({ isActive }) =>
                 `${linkBase} ${
                   isActive
-                    ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-300'
-                    : 'text-slate-300 hover:border-slate-500 hover:bg-slate-700/80 hover:text-slate-100'
+                    ? 'border-emerald-500/60 bg-emerald-50 text-emerald-700'
+                    : 'text-slate-700 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900'
                 }`
               }
             >
@@ -71,8 +71,8 @@ function AuthLayoutInner() {
               className={({ isActive }) =>
                 `${linkBase} ${
                   isActive
-                    ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-300'
-                    : 'text-slate-300 hover:border-slate-500 hover:bg-slate-700/80 hover:text-slate-100'
+                    ? 'border-emerald-500/60 bg-emerald-50 text-emerald-700'
+                    : 'text-slate-700 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900'
                 }`
               }
             >
@@ -83,8 +83,8 @@ function AuthLayoutInner() {
               className={({ isActive }) =>
                 `${linkBase} ${
                   isActive
-                    ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-300'
-                    : 'text-slate-300 hover:border-slate-500 hover:bg-slate-700/80 hover:text-slate-100'
+                    ? 'border-emerald-500/60 bg-emerald-50 text-emerald-700'
+                    : 'text-slate-700 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900'
                 }`
               }
             >
@@ -93,7 +93,7 @@ function AuthLayoutInner() {
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-lg border border-slate-600 bg-slate-800/60 px-3.5 py-2 text-xs font-medium text-slate-300 transition-colors hover:border-slate-500 hover:bg-slate-700/80 hover:text-slate-100"
+              className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900"
             >
               Sign out
             </button>
@@ -101,7 +101,7 @@ function AuthLayoutInner() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-5 pb-12 pt-6">
+      <main className="mx-auto max-w-6xl px-8 pb-12 pt-8">
         <Outlet />
       </main>
     </div>

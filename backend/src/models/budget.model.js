@@ -52,7 +52,7 @@ async function getBudgetProgressForMonth({ user_id, month }) {
       b.amount AS budget_amount,
       c.name AS category_name,
       c.type AS category_type,
-      COALESCE(SUM(t.amount), 0) AS actual_expense
+      COALESCE(SUM(t.amount_in_base), 0) AS actual_expense
     FROM category_budgets b
     JOIN categories c
       ON c.id = b.category_id

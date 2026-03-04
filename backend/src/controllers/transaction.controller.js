@@ -37,6 +37,7 @@ async function createTransaction(req, res, next) {
       amount,
       description,
       transactionDate,
+      currencyCode,
     } = req.body || {};
 
     if (!userId) {
@@ -107,12 +108,39 @@ async function createTransaction(req, res, next) {
     const id = uuidv4();
     const amountRounded = roundToTwoDecimals(parsedAmount);
 
+    const normalizedCurrency =
+      typeof currencyCode === 'string' && currencyCode.trim()
+        ? currencyCode.trim().toUpperCase()
+        : 'INR';
+
+    const { convertToInr, assertSupportedCurrency } = require('../config/fxRates');
+
+    let amountInBase;
+    let finalCurrencyCode;
+    try {
+      const normalized = assertSupportedCurrency(normalizedCurrency);
+      const conv = convertToInr(amountRounded, normalized);
+      amountInBase = conv.amountInInr;
+      finalCurrencyCode = conv.currencyCode;
+    } catch (err) {
+      if (err && err.name === 'ValidationError') {
+        return res.status(err.status || 400).json({
+          success: false,
+          message: err.message,
+          details: err.details,
+        });
+      }
+      throw err;
+    }
+
     const transaction = await transactionModel.createTransaction({
       id,
       user_id: userId,
       category_id: categoryId,
       type,
       amount: amountRounded,
+      amount_in_base: amountInBase,
+      currency_code: finalCurrencyCode,
       description,
       transaction_date: transactionDate,
     });
@@ -143,6 +171,7 @@ async function updateTransaction(req, res, next) {
       amount,
       description,
       transactionDate,
+      currencyCode,
     } = req.body || {};
 
     if (!userId) {
@@ -215,12 +244,39 @@ async function updateTransaction(req, res, next) {
 
     const amountRounded = roundToTwoDecimals(parsedAmount);
 
+    const normalizedCurrency =
+      typeof currencyCode === 'string' && currencyCode.trim()
+        ? currencyCode.trim().toUpperCase()
+        : 'INR';
+
+    const { convertToInr, assertSupportedCurrency } = require('../config/fxRates');
+
+    let amountInBase;
+    let finalCurrencyCode;
+    try {
+      const normalized = assertSupportedCurrency(normalizedCurrency);
+      const conv = convertToInr(amountRounded, normalized);
+      amountInBase = conv.amountInInr;
+      finalCurrencyCode = conv.currencyCode;
+    } catch (err) {
+      if (err && err.name === 'ValidationError') {
+        return res.status(err.status || 400).json({
+          success: false,
+          message: err.message,
+          details: err.details,
+        });
+      }
+      throw err;
+    }
+
     const updated = await transactionModel.updateTransaction({
       id: transactionId,
       user_id: userId,
       category_id: categoryId,
       type,
       amount: amountRounded,
+      amount_in_base: amountInBase,
+      currency_code: finalCurrencyCode,
       description,
       transaction_date: transactionDate,
     });

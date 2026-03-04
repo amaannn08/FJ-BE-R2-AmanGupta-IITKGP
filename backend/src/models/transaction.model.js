@@ -6,6 +6,8 @@ async function createTransaction({
   category_id,
   type,
   amount,
+  amount_in_base,
+  currency_code,
   description,
   transaction_date,
 }) {
@@ -16,12 +18,14 @@ async function createTransaction({
       category_id,
       type,
       amount,
+      amount_in_base,
+      currency_code,
       description,
       transaction_date,
       receipt_filename
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, NULL)
-    RETURNING id, user_id, category_id, type, amount, description, transaction_date, receipt_filename, created_at, updated_at
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULL)
+    RETURNING id, user_id, category_id, type, amount, amount_in_base, currency_code, description, transaction_date, receipt_filename, created_at, updated_at
   `;
 
   const values = [
@@ -30,6 +34,8 @@ async function createTransaction({
     category_id,
     type,
     amount,
+    amount_in_base,
+    currency_code,
     description ?? null,
     transaction_date,
   ];
@@ -44,6 +50,8 @@ async function updateTransaction({
   category_id,
   type,
   amount,
+  amount_in_base,
+  currency_code,
   description,
   transaction_date,
 }) {
@@ -53,12 +61,14 @@ async function updateTransaction({
       category_id = $3,
       type = $4,
       amount = $5,
-      description = $6,
-      transaction_date = $7,
+      amount_in_base = $6,
+      currency_code = $7,
+      description = $8,
+      transaction_date = $9,
       updated_at = NOW()
     WHERE id = $1
       AND user_id = $2
-    RETURNING id, user_id, category_id, type, amount, description, transaction_date, receipt_filename, created_at, updated_at
+    RETURNING id, user_id, category_id, type, amount, amount_in_base, currency_code, description, transaction_date, receipt_filename, created_at, updated_at
   `;
 
   const values = [
@@ -67,6 +77,8 @@ async function updateTransaction({
     category_id,
     type,
     amount,
+    amount_in_base,
+    currency_code,
     description ?? null,
     transaction_date,
   ];
@@ -118,7 +130,7 @@ async function getTransactionsByUser({
   const whereClause = conditions.join(' AND ');
 
   const text = `
-    SELECT id, user_id, category_id, type, amount, description, transaction_date, receipt_filename, created_at, updated_at
+    SELECT id, user_id, category_id, type, amount, amount_in_base, currency_code, description, transaction_date, receipt_filename, created_at, updated_at
     FROM transactions
     WHERE ${whereClause}
     ORDER BY transaction_date DESC, created_at DESC
@@ -130,7 +142,7 @@ async function getTransactionsByUser({
 
 async function getTransactionByIdForUser({ id, user_id }) {
   const text = `
-    SELECT id, user_id, category_id, type, amount, description, transaction_date, receipt_filename, created_at, updated_at
+    SELECT id, user_id, category_id, type, amount, amount_in_base, currency_code, description, transaction_date, receipt_filename, created_at, updated_at
     FROM transactions
     WHERE id = $1 AND user_id = $2
     LIMIT 1

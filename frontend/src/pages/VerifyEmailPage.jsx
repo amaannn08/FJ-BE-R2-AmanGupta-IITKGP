@@ -78,23 +78,23 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-slate-900/80 border border-slate-700/60 shadow-xl p-8">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-xl p-8">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="mb-4 inline-flex items-center text-sm text-slate-400 hover:text-slate-200"
+          className="mb-4 inline-flex items-center text-sm text-slate-600 hover:text-slate-900"
         >
           <span className="mr-1">{'\u2190'}</span>
           <span>Back</span>
         </button>
-        <h1 className="text-2xl font-semibold text-slate-100 text-center mb-2">
+        <h1 className="text-2xl font-semibold text-slate-900 text-center mb-2">
           Verify your email
         </h1>
-        <p className="text-slate-400 text-sm text-center mb-4">
+        <p className="text-slate-600 text-sm text-center mb-4">
           We&apos;ve sent a 6-digit verification code to
         </p>
-        <p className="text-sm font-medium text-emerald-300 text-center mb-6 break-all">
+        <p className="text-sm font-medium text-emerald-700 text-center mb-6 break-all">
           {email}
         </p>
 
@@ -102,7 +102,7 @@ export default function VerifyEmailPage() {
           <div>
             <label
               htmlFor="otp"
-              className="block text-sm font-medium text-slate-300 mb-1"
+              className="block text-sm font-medium text-slate-700 mb-1"
             >
               Verification code
             </label>
@@ -116,7 +116,7 @@ export default function VerifyEmailPage() {
               placeholder="Enter 6-digit code"
               maxLength={6}
               required
-              className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 tracking-widest text-center"
+              className="w-full px-4 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 tracking-widest text-center"
             />
           </div>
 
@@ -124,8 +124,8 @@ export default function VerifyEmailPage() {
             <div
               className={`rounded-lg px-4 py-2.5 text-sm ${
                 message.type === 'success'
-                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-500/40'
+                  : 'bg-red-50 text-red-700 border border-red-500/40'
               }`}
             >
               {message.text}
@@ -135,7 +135,7 @@ export default function VerifyEmailPage() {
           <button
             type="submit"
             disabled={verifying || !code}
-            className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+            className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-100"
           >
             {verifying ? 'Verifying…' : 'Verify email'}
           </button>
@@ -145,7 +145,7 @@ export default function VerifyEmailPage() {
           type="button"
           onClick={handleResend}
           disabled={resending}
-          className="mt-4 w-full py-2.5 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-200 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-600 hover:bg-slate-800"
+          className="mt-4 w-full py-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-400 hover:bg-slate-50"
         >
           {resending ? 'Resending…' : 'Resend code'}
         </button>

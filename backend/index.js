@@ -29,9 +29,34 @@ app.use((err, req, res, next) => {
   if (res.headersSent) {
     return;
   }
-  res
-    .status(err.status || 500)
-    .json({ success: false, message: err.message || 'Internal server error' });
+
+  // Handle explicit validation-style errors.
+  if (err && (err.name === 'ValidationError' || err.status === 400)) {
+    return res.status(400).json({
+      success: false,
+      message: err.message || 'Invalid request.',
+      details: err.details,
+    });
+  }
+
+  // Handle common PG connection errors without leaking internal details.
+  if (
+    err &&
+    (err.code === 'ETIMEDOUT' ||
+      err.code === 'ECONNRESET' ||
+      err.code === 'ECONNREFUSED' ||
+      err.name === 'AggregateError')
+  ) {
+    return res.status(503).json({
+      success: false,
+      message: 'Database is temporarily unavailable. Please try again later.',
+    });
+  }
+
+  return res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal server error',
+  });
 });
 
 app.listen(PORT, () => {

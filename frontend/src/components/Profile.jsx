@@ -3,7 +3,7 @@ import { updateProfile } from '../api/auth';
 import { useUser } from '../context/UserContext';
 
 const inputClass =
-  'w-full rounded-lg border border-slate-600 bg-slate-800/50 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/25';
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/25';
 
 export default function Profile({ onClose, onUpdate }) {
   const { user, loading, refetch } = useUser();
@@ -53,16 +53,16 @@ export default function Profile({ onClose, onUpdate }) {
 
   if (loading || !user) {
     return (
-      <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-sm text-slate-500">Loading profile…</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-6">
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Profile</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700">Profile</h2>
         {user?.avatar_url && (
           <img src={user.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
         )}
@@ -83,8 +83,8 @@ export default function Profile({ onClose, onUpdate }) {
         <div
           className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
             message.type === 'success'
-              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
-              : 'border-red-500/40 bg-red-500/10 text-red-400'
+              ? 'border-emerald-500/40 bg-emerald-50 text-emerald-700'
+              : 'border-red-500/40 bg-red-50 text-red-700'
           }`}
         >
           {message.text}
@@ -92,7 +92,7 @@ export default function Profile({ onClose, onUpdate }) {
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">Name</label>
+          <label className="mb-1 block text-xs font-medium text-slate-600">Name</label>
           <input
             type="text"
             value={form.name}
@@ -101,7 +101,7 @@ export default function Profile({ onClose, onUpdate }) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-slate-500">Email</label>
+          <label className="mb-1 block text-xs font-medium text-slate-600">Email</label>
           <input
             type="email"
             value={form.email}
@@ -115,9 +115,9 @@ export default function Profile({ onClose, onUpdate }) {
             type="checkbox"
             checked={form.email_budget_alerts}
             onChange={(e) => setForm((f) => ({ ...f, email_budget_alerts: e.target.checked }))}
-            className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-emerald-600 focus:ring-emerald-500"
+            className="h-4 w-4 rounded border-slate-300 bg-white text-emerald-600 focus:ring-emerald-500"
           />
-          <label htmlFor="email_budget_alerts" className="text-sm text-slate-300">
+          <label htmlFor="email_budget_alerts" className="text-sm text-slate-700">
             Email me when I exceed a budget
           </label>
         </div>
@@ -133,7 +133,7 @@ export default function Profile({ onClose, onUpdate }) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
             >
               Close
             </button>

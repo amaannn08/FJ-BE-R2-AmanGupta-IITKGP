@@ -3,10 +3,10 @@ const { pool } = require('../db');
 async function getDashboardSummary({ user_id, fromDate, toDate }) {
   const text = `
     SELECT
-      COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS "totalIncome",
-      COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS "totalExpense",
-      COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0)
-        - COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS "netSavings"
+      COALESCE(SUM(CASE WHEN type = 'income' THEN amount_in_base ELSE 0 END), 0) AS "totalIncome",
+      COALESCE(SUM(CASE WHEN type = 'expense' THEN amount_in_base ELSE 0 END), 0) AS "totalExpense",
+      COALESCE(SUM(CASE WHEN type = 'income' THEN amount_in_base ELSE 0 END), 0)
+        - COALESCE(SUM(CASE WHEN type = 'expense' THEN amount_in_base ELSE 0 END), 0) AS "netSavings"
     FROM transactions
     WHERE user_id = $1
       AND transaction_date BETWEEN $2 AND $3
@@ -22,7 +22,7 @@ async function getCategoryBreakdown({ user_id, type, fromDate, toDate }) {
     SELECT
       c.id AS "categoryId",
       c.name AS "categoryName",
-      COALESCE(SUM(t.amount), 0) AS "total"
+      COALESCE(SUM(t.amount_in_base), 0) AS "total"
     FROM categories c
     LEFT JOIN transactions t
       ON t.category_id = c.id
@@ -51,8 +51,8 @@ async function getMonthlyTrend({ user_id, fromDate, toDate }) {
     agg AS (
       SELECT
         date_trunc('month', transaction_date)::date AS month,
-        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) AS income,
-        SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS expense
+        SUM(CASE WHEN type = 'income' THEN amount_in_base ELSE 0 END) AS income,
+        SUM(CASE WHEN type = 'expense' THEN amount_in_base ELSE 0 END) AS expense
       FROM transactions
       WHERE user_id = $1
         AND transaction_date BETWEEN $2 AND $3

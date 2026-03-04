@@ -3,9 +3,9 @@ import { getBudgetProgress, setBudget } from '../api/budgets';
 import { getCategories } from '../api/categories';
 
 function formatCurrency(n) {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'INR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(n);
@@ -92,17 +92,17 @@ export default function Budgets({ onClose }) {
   };
 
   const inputClass =
-    'rounded-lg border border-slate-600 bg-slate-800/50 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/25';
+    'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/25';
 
   return (
-    <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-6">
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Budgets</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-700">Budgets (INR)</h2>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1 text-slate-500 hover:bg-slate-700/50 hover:text-slate-300"
+            className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
             aria-label="Close"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,7 +112,13 @@ export default function Budgets({ onClose }) {
         )}
       </div>
       {message.text && (
-        <div className={`mb-4 rounded-lg border px-3 py-2 text-sm ${message.type === 'success' ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400' : 'border-red-500/40 bg-red-500/10 text-red-400'}`}>
+        <div
+          className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
+            message.type === 'success'
+              ? 'border-emerald-500/40 bg-emerald-50 text-emerald-700'
+              : 'border-red-500/40 bg-red-50 text-red-700'
+          }`}
+        >
           {message.text}
         </div>
       )}
@@ -133,7 +139,7 @@ export default function Budgets({ onClose }) {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs text-slate-500">Limit ($)</label>
+          <label className="mb-1 block text-xs text-slate-500">Limit (INR)</label>
           <input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} className={inputClass} />
         </div>
         <div>
@@ -156,14 +162,18 @@ export default function Budgets({ onClose }) {
           {progress.map((b) => {
             const pct = b.limit > 0 ? Math.max(0, Math.min(100, (b.spent / b.limit) * 100)) : 0;
             return (
-              <div key={b.id} className="rounded-lg border border-slate-700/50 bg-slate-800/60 p-3">
+              <div key={b.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <p className="font-medium text-slate-200">{b.category}</p>
-                    <p className="text-xs text-slate-500">{b.year}-{String(b.month).padStart(2, '0')} {b.isCurrent && '(current)'}</p>
+                    <p className="font-medium text-slate-800">{b.category}</p>
+                    <p className="text-xs text-slate-500">
+                      {b.year}-{String(b.month).padStart(2, '0')} {b.isCurrent && '(current)'}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-slate-300">{formatCurrency(b.spent)} / {formatCurrency(b.limit)}</p>
+                    <p className="text-sm text-slate-700">
+                      {formatCurrency(b.spent)} / {formatCurrency(b.limit)}
+                    </p>
                     {b.isOver ? (
                       <p className="text-xs text-rose-400">Over by {formatCurrency(b.spent - b.limit)}</p>
                     ) : b.spent < 0 ? (

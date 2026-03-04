@@ -12,15 +12,19 @@ function formatDate(str) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function formatCurrency(n) {
+function formatCurrency(n, currencyCode = 'INR') {
   const locale = 'en-IN';
-  const code = 'INR';
+  const code = currencyCode || 'INR';
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: code,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(n);
+}
+
+function formatInr(n) {
+  return formatCurrency(n, 'INR');
 }
 
 export default function Dashboard() {
@@ -42,10 +46,18 @@ export default function Dashboard() {
     amount: '',
     description: '',
     date: new Date().toISOString().slice(0, 10),
+    currencyCode: 'INR',
     newCategoryName: '',
   });
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ type: 'expense', categoryId: '', amount: '', description: '', date: '' });
+  const [editForm, setEditForm] = useState({
+    type: 'expense',
+    categoryId: '',
+    amount: '',
+    description: '',
+    date: '',
+    currencyCode: 'INR',
+  });
   const [filters, setFilters] = useState(cachedFilters || { from: '', to: '', categoryId: '' });
   const [summaryFromApi, setSummaryFromApi] = useState(null);
   const [monthlyTrendFromApi, setMonthlyTrendFromApi] = useState(null);
@@ -58,10 +70,12 @@ export default function Dashboard() {
   const normalizeTransaction = (t) => {
     const categoryId = t?.categoryId ?? t?.category_id ?? '';
     const transactionDate = t?.transactionDate ?? t?.transaction_date ?? t?.date ?? '';
+    const currencyCode = t?.currencyCode ?? t?.currency_code ?? 'INR';
     return {
       ...t,
       categoryId: categoryId != null ? String(categoryId) : '',
       transactionDate,
+      currencyCode,
     };
   };
 
@@ -290,9 +304,15 @@ export default function Dashboard() {
         amount,
         description: form.description.trim() || undefined,
         transactionDate: form.date,
+        currencyCode: form.currencyCode || 'INR',
       });
       setMessage({ type: 'success', text: 'Transaction added.' });
-      setForm((f) => ({ ...f, amount: '', description: '', newCategoryName: '' }));
+      setForm((f) => ({
+        ...f,
+        amount: '',
+        description: '',
+        newCategoryName: '',
+      }));
       fetchTransactions();
       refetchSummary();
     } catch (err) {
@@ -310,6 +330,7 @@ export default function Dashboard() {
       amount: String(t.amount ?? ''),
       description: t.description || '',
       date: (t.transactionDate || t.transaction_date || t.date || '').slice(0, 10),
+      currencyCode: t.currencyCode || t.currency_code || 'INR',
     });
   };
 
@@ -329,6 +350,7 @@ export default function Dashboard() {
         amount,
         description: editForm.description.trim() || undefined,
         transactionDate: editForm.date,
+        currencyCode: editForm.currencyCode || 'INR',
       });
       setMessage({ type: 'success', text: 'Transaction updated.' });
       setEditingId(null);
@@ -434,7 +456,7 @@ export default function Dashboard() {
   const maxBar = Math.max(1, ...monthlyData.flatMap((m) => [m.income, m.expense]));
 
   const inputClass =
-    'w-full rounded-lg border border-slate-600 bg-slate-800/50 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/25';
+    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/25';
 
   return (
     <>
@@ -459,22 +481,22 @@ export default function Dashboard() {
 
       {/* Summary: three cards */}
       <section className="mb-6">
-          <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-xl border border-slate-700/60 bg-slate-800/50 px-4 py-3">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Income</p>
-            <p className="mt-0.5 text-base font-semibold tabular-nums text-emerald-400">
+          <div className="grid grid-cols-3 gap-4">
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Income (INR)</p>
+            <p className="mt-0.5 text-base font-semibold tabular-nums text-emerald-600">
               {formatCurrency(totalIncome)}
             </p>
           </div>
-          <div className="rounded-xl border border-slate-700/60 bg-slate-800/50 px-4 py-3">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Expense</p>
-            <p className="mt-0.5 text-base font-semibold tabular-nums text-rose-400">
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Expense (INR)</p>
+            <p className="mt-0.5 text-base font-semibold tabular-nums text-rose-500">
               {formatCurrency(totalExpense)}
             </p>
           </div>
-          <div className="rounded-xl border border-slate-700/60 bg-slate-800/50 px-4 py-3">
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
             <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Balance</p>
-            <p className={`mt-0.5 text-base font-semibold tabular-nums ${balance >= 0 ? 'text-slate-100' : 'text-rose-400'}`}>
+            <p className={`mt-0.5 text-base font-semibold tabular-nums ${balance >= 0 ? 'text-slate-900' : 'text-rose-500'}`}>
               {formatCurrency(balance)}
             </p>
           </div>
@@ -482,7 +504,7 @@ export default function Dashboard() {
       </section>
 
       {monthlyData.length > 0 && (
-        <section className="mb-6 rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-4">
+        <section className="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
               Income vs expense by month
             </h2>
@@ -513,17 +535,18 @@ export default function Dashboard() {
       )}
 
       {/* Two columns within same container: form has fixed width, list takes rest */}
-      <div className="grid gap-6 sm:grid-cols-[minmax(0,260px)_1fr]">
+      <div className="grid gap-8 grid-cols-[320px_minmax(0,1fr)]">
         {/* Add transaction card – fixed width on sm+ so it doesn’t stretch */}
         <section>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
               Add transaction
             </h2>
-            <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <form onSubmit={handleAddTransaction} className="space-y-3.5">
-                <div>
+                <div className="grid grid-cols-[1.5fr_auto] gap-2">
+                  <div>
                   <p className="mb-1.5 text-[11px] font-medium text-slate-500">Type</p>
-                  <div className="flex rounded-lg bg-slate-900/70 p-1 gap-0.5">
+                  <div className="flex rounded-lg bg-slate-100 p-1 gap-0.5">
                     <button
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, type: 'income' }))}
@@ -546,6 +569,26 @@ export default function Dashboard() {
                     >
                       Expense
                     </button>
+                  </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-slate-500">
+                      Currency
+                    </label>
+                    <select
+                      value={form.currencyCode}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          currencyCode: e.target.value || 'INR',
+                        }))
+                      }
+                      className={inputClass}
+                    >
+                      <option value="INR">INR (₹)</option>
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                    </select>
                   </div>
                 </div>
                 <div>
@@ -753,7 +796,7 @@ export default function Dashboard() {
                     type="date"
                     value={filters.from}
                     onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
-                    className="rounded-lg border border-slate-600 bg-slate-800/50 px-2 py-1.5 text-xs text-slate-100 focus:border-emerald-500/60 focus:outline-none"
+                    className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 focus:border-emerald-500/60 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -762,7 +805,7 @@ export default function Dashboard() {
                     type="date"
                     value={filters.to}
                     onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
-                    className="rounded-lg border border-slate-600 bg-slate-800/50 px-2 py-1.5 text-xs text-slate-100 focus:border-emerald-500/60 focus:outline-none"
+                    className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 focus:border-emerald-500/60 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -770,7 +813,7 @@ export default function Dashboard() {
                   <select
                     value={filters.categoryId}
                     onChange={(e) => setFilters((f) => ({ ...f, categoryId: e.target.value }))}
-                    className="rounded-lg border border-slate-600 bg-slate-800/50 px-2 py-1.5 text-xs text-slate-100 focus:border-emerald-500/60 focus:outline-none min-w-[120px]"
+                    className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 focus:border-emerald-500/60 focus:outline-none min-w-[120px]"
                   >
                     <option value="">All</option>
                     {categories.map((c) => (
@@ -798,7 +841,7 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
-            <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 overflow-hidden">
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               {transactions.length === 0 ? (
                 <div className="py-10 text-center">
                   <p className="text-sm text-slate-500">No transactions yet.</p>
@@ -831,14 +874,30 @@ export default function Dashboard() {
                                 </option>
                               ))}
                             </select>
-                            <input
-                              type="number"
-                              step="0.01"
-                              placeholder="Amount"
-                              value={editForm.amount}
-                              onChange={(e) => setEditForm((f) => ({ ...f, amount: e.target.value }))}
-                              className={inputClass + ' w-24'}
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Amount"
+                                value={editForm.amount}
+                                onChange={(e) => setEditForm((f) => ({ ...f, amount: e.target.value }))}
+                                className={inputClass + ' w-24'}
+                              />
+                              <select
+                                value={editForm.currencyCode}
+                                onChange={(e) =>
+                                  setEditForm((f) => ({
+                                    ...f,
+                                    currencyCode: e.target.value || 'INR',
+                                  }))
+                                }
+                                className={inputClass + ' w-24'}
+                              >
+                                <option value="INR">INR (₹)</option>
+                                <option value="USD">USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                              </select>
+                            </div>
                             <input
                               type="date"
                               value={editForm.date}
@@ -892,9 +951,16 @@ export default function Dashboard() {
                             className={`shrink-0 text-sm font-semibold tabular-nums ${
                               t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'
                             }`}
+                            title={`Original: ${formatCurrency(
+                              Number(t.amount) || 0,
+                              t.currencyCode || 'INR',
+                            )}`}
                           >
                             {t.type === 'income' ? '+' : '−'}
-                            {formatCurrency(Number(t.amount) || 0)}
+                            {formatCurrency(
+                              Number(t.amount) || 0,
+                              t.currencyCode || 'INR',
+                            )}
                           </p>
                           <div className="flex shrink-0 flex-wrap items-center gap-1">
                             <div className="flex items-center gap-1">

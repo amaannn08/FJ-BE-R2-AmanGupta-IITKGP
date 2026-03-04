@@ -118,12 +118,12 @@ export default function RecurringBills() {
   }
 
   const inputClass =
-    'rounded-lg border border-slate-600 bg-slate-800/50 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/25'
+    'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/25'
 
   return (
-    <section className="mt-6 rounded-xl border border-slate-700/60 bg-slate-800/40 p-4">
+    <section className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-700">
           EMI & recurring bills
         </h2>
       </div>
@@ -132,8 +132,8 @@ export default function RecurringBills() {
         <div
           className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
             message.type === 'success'
-              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
-              : 'border-red-500/40 bg-red-500/10 text-red-400'
+              ? 'border-emerald-500/40 bg-emerald-50 text-emerald-700'
+              : 'border-red-500/40 bg-red-50 text-red-700'
           }`}
         >
           {message.text}
@@ -219,37 +219,37 @@ export default function RecurringBills() {
       ) : bills.length === 0 ? (
         <p className="text-sm text-slate-500">No recurring bills yet. Add one above.</p>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-700/60">
+        <div className="overflow-hidden rounded-lg border border-slate-200">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-700/50 bg-slate-800/60">
-                <th className="px-3 py-2 font-medium text-slate-400">Name</th>
-                <th className="px-3 py-2 font-medium text-slate-400">Category</th>
-                <th className="px-3 py-2 font-medium text-slate-400 text-right">Amount</th>
-                <th className="px-3 py-2 font-medium text-slate-400">Cycle</th>
-                <th className="px-3 py-2 font-medium text-slate-400">Next due</th>
-                <th className="px-3 py-2 font-medium text-slate-400 text-center">Status</th>
+            <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="px-3 py-2 font-medium text-slate-600">Name</th>
+                <th className="px-3 py-2 font-medium text-slate-600">Category</th>
+                <th className="px-3 py-2 font-medium text-slate-600 text-right">Amount</th>
+                <th className="px-3 py-2 font-medium text-slate-600">Cycle</th>
+                <th className="px-3 py-2 font-medium text-slate-600">Next due</th>
+                <th className="px-3 py-2 font-medium text-slate-600 text-center">Status</th>
                 <th className="px-3 py-2" />
               </tr>
             </thead>
             <tbody>
               {bills.map((b) => (
-                <tr key={b.id} className="border-b border-slate-700/40 last:border-0">
-                  <td className="px-3 py-2 text-slate-200">{b.name}</td>
-                  <td className="px-3 py-2 text-slate-300">{b.category}</td>
-                  <td className="px-3 py-2 text-right text-slate-200">
+                <tr key={b.id} className="border-b border-slate-100 last:border-0">
+                  <td className="px-3 py-2 text-slate-800">{b.name}</td>
+                  <td className="px-3 py-2 text-slate-700">{b.category}</td>
+                  <td className="px-3 py-2 text-right text-slate-800">
                     {formatCurrency(b.amount, b.currency_code)}
                   </td>
-                  <td className="px-3 py-2 text-slate-300">
+                  <td className="px-3 py-2 text-slate-700">
                     {b.billing_cycle === 'monthly' ? 'Monthly' : 'Yearly'}
                   </td>
-                  <td className="px-3 py-2 text-slate-300">{b.next_due_date}</td>
+                  <td className="px-3 py-2 text-slate-700">{b.next_due_date}</td>
                   <td className="px-3 py-2 text-center">
                     <span
                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                         b.is_active
-                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-slate-700/40 text-slate-400 border border-slate-600/60'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-500/40'
+                          : 'bg-slate-100 text-slate-600 border border-slate-300'
                       }`}
                     >
                       {b.is_active ? 'Active' : 'Cancelled'}

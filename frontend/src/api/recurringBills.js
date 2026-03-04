@@ -3,7 +3,7 @@ let mockBills = [
     id: 1,
     name: 'Netflix',
     amount: 15.99,
-    currency_code: 'USD',
+    currency_code: 'INR',
     billing_cycle: 'monthly',
     next_due_date: new Date().toISOString().slice(0, 10),
     category: 'Entertainment',
@@ -13,7 +13,7 @@ let mockBills = [
     id: 2,
     name: 'Electricity',
     amount: 60,
-    currency_code: 'USD',
+    currency_code: 'INR',
     billing_cycle: 'monthly',
     next_due_date: new Date().toISOString().slice(0, 10),
     category: 'Utilities',
@@ -27,7 +27,7 @@ export async function getRecurringBills() {
   return mockBills.slice();
 }
 
-export async function addRecurringBill({ name, amount, billing_cycle, next_due_date, category, currency_code }) {
+export async function addRecurringBill({ name, amount, billing_cycle, next_due_date, category, currency_code } = {}) {
   if (!name || !amount || !billing_cycle || !next_due_date) {
     throw new Error('Name, amount, billing cycle, and next due date are required.');
   }
@@ -36,7 +36,7 @@ export async function addRecurringBill({ name, amount, billing_cycle, next_due_d
     id: nextBillId++,
     name: name.trim(),
     amount: Number(amount) || 0,
-    currency_code: currency_code || 'USD',
+    currency_code: currency_code || 'INR',
     billing_cycle,
     next_due_date,
     category: (category || 'General').trim(),
