@@ -60,8 +60,70 @@ async function sendOtpEmail({ to, otp }) {
   return true;
 }
 
+async function sendMail({ to, subject, html }) {
+  if (!transporter) {
+    // eslint-disable-next-line no-console
+    console.log('\n[DEV] Email (not actually sent):', { to, subject });
+    return false;
+  }
+  const mailOptions = {
+    from: fromEmail,
+    to,
+    subject,
+    html,
+  };
+  await transporter.sendMail(mailOptions);
+  return true;
+}
+
+function formatCurrency(amount) {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return String(amount);
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+async function sendBudgetOverrunEmail({
+  to,
+  userName,
+  categoryName,
+  month,
+  budgetAmount,
+  actualExpense,
+}) {
+  const monthLabel =
+    typeof month === 'string' && month.length >= 7
+      ? new Date(month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      : String(month);
+  const budgetStr = formatCurrency(budgetAmount);
+  const spentStr = formatCurrency(actualExpense);
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>FinanceTracker – Budget Exceeded</h2>
+      <p>Hi ${userName ? String(userName).replace(/</g, '&lt;') : 'there'},</p>
+      <p>You've exceeded your budget for <strong>${String(categoryName).replace(/</g, '&lt;')}</strong> in ${monthLabel}.</p>
+      <p><strong>Budget:</strong> ${budgetStr}<br><strong>Spent:</strong> ${spentStr}</p>
+      <p>Consider reviewing your spending in this category.</p>
+      <p>If you did not expect this alert, you can turn off budget emails in your profile settings.</p>
+    </div>
+  `;
+
+  return sendMail({
+    to,
+    subject: `FinanceTracker – Budget exceeded for ${categoryName}`,
+    html,
+  });
+}
+
 module.exports = {
   generateOtp,
   sendOtpEmail,
+  sendMail,
+  sendBudgetOverrunEmail,
 };
 

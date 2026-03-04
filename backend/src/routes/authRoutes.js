@@ -28,7 +28,7 @@ router.get('/getProfile', authenticateToken, async (req, res) => {
     const userId = req.user && req.user.userId;
 
     const result = await query(
-      'SELECT id, name, email, avatar_url, google_id, created_at, updated_at FROM users WHERE id = $1',
+      'SELECT id, name, email, avatar_url, google_id, email_budget_alerts, created_at, updated_at FROM users WHERE id = $1',
       [userId],
     );
 
@@ -42,6 +42,7 @@ router.get('/getProfile', authenticateToken, async (req, res) => {
       name: row.name,
       email: row.email,
       avatar_url: row.avatar_url ?? null,
+      email_budget_alerts: row.email_budget_alerts !== false,
       created_at: row.created_at,
       updated_at: row.updated_at,
       auth_provider: row.google_id ? 'google' : 'local',
@@ -56,14 +57,14 @@ router.get('/getProfile', authenticateToken, async (req, res) => {
 router.put('/updateProfile', authenticateToken, async (req, res) => {
   try {
     const userId = req.user && req.user.userId;
-    const { name, email } = req.body || {};
+    const { name, email, email_budget_alerts } = req.body || {};
 
-    if (!name && !email) {
+    if (name === undefined && email === undefined && email_budget_alerts === undefined) {
       return res.status(400).json({ success: false, message: 'Nothing to update.' });
     }
 
     let normalizedEmail;
-    if (email) {
+    if (email !== undefined) {
       normalizedEmail = email.trim().toLowerCase();
       if (!validateEmail(normalizedEmail)) {
         return res.status(400).json({ success: false, message: 'Invalid email format.' });
@@ -82,16 +83,26 @@ router.put('/updateProfile', authenticateToken, async (req, res) => {
     const values = [];
     let paramIndex = 1;
 
-    if (name) {
+    if (name !== undefined) {
       fields.push(`name = $${paramIndex}`);
       values.push(name);
       paramIndex += 1;
     }
 
-    if (normalizedEmail) {
+    if (normalizedEmail !== undefined) {
       fields.push(`email = $${paramIndex}`);
       values.push(normalizedEmail);
       paramIndex += 1;
+    }
+
+    if (typeof email_budget_alerts === 'boolean') {
+      fields.push(`email_budget_alerts = $${paramIndex}`);
+      values.push(email_budget_alerts);
+      paramIndex += 1;
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ success: false, message: 'Nothing to update.' });
     }
 
     values.push(userId);
@@ -100,7 +111,7 @@ router.put('/updateProfile', authenticateToken, async (req, res) => {
       UPDATE users
       SET ${fields.join(', ')}, updated_at = NOW()
       WHERE id = $${paramIndex}
-      RETURNING id, name, email, created_at, updated_at
+      RETURNING id, name, email, email_budget_alerts, created_at, updated_at
     `;
 
     const result = await query(updateQuery, values);

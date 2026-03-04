@@ -1,4 +1,13 @@
 import { apiGet, apiPost, apiPut, apiDelete } from './client.js'
+import { getToken } from './auth.js'
+
+const DEFAULT_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+
+function buildUrl(path) {
+  const base = DEFAULT_BASE_URL.replace(/\/+$/, '')
+  const cleanedPath = path.startsWith('/') ? path : `/${path}`
+  return `${base}${cleanedPath}`
+}
 
 export async function getTransactions({ from, to, categoryId } = {}) {
   const params = {
@@ -44,11 +53,37 @@ export async function deleteTransaction(id) {
   return apiDelete(`/transactions/${id}`)
 }
 
-export async function uploadReceipt() {
-  throw new Error('Receipt upload is not yet supported with the backend API.')
+export async function uploadReceipt(transactionId, file) {
+  if (!transactionId) {
+    throw new Error('Transaction id is required to upload a receipt.')
+  }
+  if (!file) {
+    throw new Error('A file is required to upload a receipt.')
+  }
+  const formData = new FormData()
+  formData.append('receipt', file)
+  return apiPost(`/transactions/${transactionId}/receipt`, formData)
 }
 
-export async function openReceipt() {
-  throw new Error('Receipt viewing is not yet supported with the backend API.')
+export async function openReceipt(transactionId) {
+  if (!transactionId) {
+    throw new Error('Transaction id is required to open a receipt.')
+  }
+
+  const token = getToken()
+  const url = buildUrl(`/transactions/${transactionId}/receipt`)
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to open receipt (status ${response.status})`)
+  }
+
+  const blob = await response.blob()
+  const objectUrl = window.URL.createObjectURL(blob)
+  window.open(objectUrl, '_blank', 'noopener,noreferrer')
 }
 

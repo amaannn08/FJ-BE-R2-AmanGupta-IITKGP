@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getTransactions, addTransaction, updateTransaction, deleteTransaction } from '../api/transactions';
+import { getTransactions, addTransaction, updateTransaction, deleteTransaction, uploadReceipt, openReceipt } from '../api/transactions';
 import { getCategories, createCategory, updateCategory, ensureCategoryExists } from '../api/categories';
 import { getDashboardSummary, getDashboardMonthlyTrend } from '../api/dashboard';
 import RecurringBills from './RecurringBills';
@@ -53,6 +53,7 @@ export default function Dashboard() {
   const [renameCategoryName, setRenameCategoryName] = useState('');
   const [isRenamingCategory, setIsRenamingCategory] = useState(false);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [uploadingReceiptId, setUploadingReceiptId] = useState(null);
 
   const normalizeTransaction = (t) => {
     const categoryId = t?.categoryId ?? t?.category_id ?? '';
@@ -115,6 +116,21 @@ export default function Dashboard() {
     } finally {
       if (cancelRef?.current) return;
       setLoading(false);
+    }
+  };
+
+  const handleUploadReceipt = async (transactionId, file) => {
+    if (!transactionId || !file) return;
+    setUploadingReceiptId(transactionId);
+    setMessage({ type: '', text: '' });
+    try {
+      await uploadReceipt(transactionId, file);
+      await fetchTransactions();
+      setMessage({ type: 'success', text: 'Receipt uploaded.' });
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to upload receipt.' });
+    } finally {
+      setUploadingReceiptId(null);
     }
   };
 
@@ -881,6 +897,34 @@ export default function Dashboard() {
                             {formatCurrency(Number(t.amount) || 0)}
                           </p>
                           <div className="flex shrink-0 flex-wrap items-center gap-1">
+                            <div className="flex items-center gap-1">
+                              <label className="inline-flex cursor-pointer items-center rounded px-1.5 py-1 text-[11px] text-slate-300 hover:bg-slate-600/60">
+                                <span>Upload receipt</span>
+                                <input
+                                  type="file"
+                                  accept="image/*,application/pdf"
+                                  className="sr-only"
+                                  onChange={(e) => {
+                                    const file = e.target.files && e.target.files[0];
+                                    if (file) {
+                                      handleUploadReceipt(t.id, file);
+                                      // reset so selecting same file again re-triggers change
+                                      e.target.value = '';
+                                    }
+                                  }}
+                                  disabled={uploadingReceiptId === t.id}
+                                />
+                              </label>
+                              {t.receipt_filename && (
+                                <button
+                                  type="button"
+                                  onClick={() => openReceipt(t.id)}
+                                  className="rounded px-1.5 py-1 text-[11px] text-emerald-300 hover:bg-emerald-600/20"
+                                >
+                                  View receipt
+                                </button>
+                              )}
+                            </div>
                             <button
                               type="button"
                               onClick={() => handleEdit(t)}

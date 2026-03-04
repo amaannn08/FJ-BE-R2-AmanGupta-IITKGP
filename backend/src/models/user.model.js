@@ -98,7 +98,7 @@ async function findUserByGoogleId(google_id) {
  */
 async function findUserById(id) {
   const text = `
-    SELECT id, name, email, password_hash, google_id, avatar_url, created_at, updated_at
+    SELECT id, name, email, password_hash, google_id, avatar_url, email_budget_alerts, created_at, updated_at
     FROM users
     WHERE id = $1
     LIMIT 1

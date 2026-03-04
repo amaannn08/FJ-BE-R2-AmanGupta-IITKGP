@@ -20,9 +20,16 @@ GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
 GOOGLE_CLIENT_SECRET=<your-google-oauth-client-secret>
 GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
 FRONTEND_APP_URL=http://localhost:5173
+
+# Email (nodemailer) for OTP verification and budget overrun alerts
+# If not set, emails are logged in dev and not sent
+EMAIL_ID=<your-smtp-email e.g. Gmail address>
+EMAIL_PASS=<app-password-or-smtp-password>
 ```
 
 > Never commit your `.env` file or share these secrets.
+
+Budget overrun notifications use the same email config as OTP: when a user exceeds a budget for an expense category (after adding or editing an expense), they receive at most one email per category per month if `EMAIL_ID` and `EMAIL_PASS` are set. Users can turn this off in Profile via "Email me when I exceed a budget".
 
 ## Database Setup (Neon / Postgres)
 

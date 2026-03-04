@@ -40,11 +40,24 @@ async function request(path, { method = 'GET', body, params, auth = true, header
 
   const url = buildUrl(path, params)
 
-  const response = await fetch(url, {
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
+
+  const requestInit = {
     method,
-    headers,
-    body: body != null ? JSON.stringify(body) : undefined,
-  })
+    headers: { ...headers },
+    body: undefined,
+  }
+
+  if (body != null) {
+    if (isFormData) {
+      delete requestInit.headers['Content-Type']
+      requestInit.body = body
+    } else {
+      requestInit.body = JSON.stringify(body)
+    }
+  }
+
+  const response = await fetch(url, requestInit)
 
   let payload = null
   try {

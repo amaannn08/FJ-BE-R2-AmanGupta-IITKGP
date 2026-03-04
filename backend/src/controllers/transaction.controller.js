@@ -1,7 +1,12 @@
 const { v4: uuidv4 } = require('uuid');
 
+const fs = require('fs');
+const path = require('path');
+
 const transactionModel = require('../models/transaction.model');
 const categoryModel = require('../models/category.model');
+const notificationService = require('../services/notification.service');
+const { RECEIPTS_UPLOAD_DIR } = require('../config/uploads');
 
 function parseAmount(amount) {
   const num = typeof amount === 'string' ? Number(amount) : amount;
@@ -112,6 +117,16 @@ async function createTransaction(req, res, next) {
       transaction_date: transactionDate,
     });
 
+    if (type === 'expense') {
+      void notificationService
+        .checkAndSendBudgetOverrunAlert({
+          user_id: userId,
+          category_id: categoryId,
+          transaction_date: transactionDate,
+        })
+        .catch(() => {});
+    }
+
     return res.status(201).json({ success: true, data: transaction });
   } catch (err) {
     return next(err);
@@ -214,6 +229,16 @@ async function updateTransaction(req, res, next) {
       return res.status(404).json({ success: false, message: 'Transaction not found.' });
     }
 
+    if (type === 'expense') {
+      void notificationService
+        .checkAndSendBudgetOverrunAlert({
+          user_id: userId,
+          category_id: categoryId,
+          transaction_date: transactionDate,
+        })
+        .catch(() => {});
+    }
+
     return res.json({ success: true, data: updated });
   } catch (err) {
     return next(err);
@@ -233,6 +258,11 @@ async function deleteTransaction(req, res, next) {
       return res.status(400).json({ success: false, message: 'Transaction id is required.' });
     }
 
+    const existing = await transactionModel.getTransactionByIdForUser({
+      id: transactionId,
+      user_id: userId,
+    });
+
     const deleted = await transactionModel.deleteTransaction({
       id: transactionId,
       user_id: userId,
@@ -240,6 +270,16 @@ async function deleteTransaction(req, res, next) {
 
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Transaction not found.' });
+    }
+
+    if (existing && existing.receipt_filename) {
+      const safeName = path.basename(existing.receipt_filename);
+      const filePath = path.join(RECEIPTS_UPLOAD_DIR, safeName);
+      try {
+        await fs.promises.unlink(filePath);
+      } catch {
+        // ignore missing/failed delete
+      }
     }
 
     return res.json({ success: true, message: 'Transaction deleted successfully.' });

@@ -17,10 +17,11 @@ async function createTransaction({
       type,
       amount,
       description,
-      transaction_date
+      transaction_date,
+      receipt_filename
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING id, user_id, category_id, type, amount, description, transaction_date, created_at, updated_at
+    VALUES ($1, $2, $3, $4, $5, $6, $7, NULL)
+    RETURNING id, user_id, category_id, type, amount, description, transaction_date, receipt_filename, created_at, updated_at
   `;
 
   const values = [
@@ -57,7 +58,7 @@ async function updateTransaction({
       updated_at = NOW()
     WHERE id = $1
       AND user_id = $2
-    RETURNING id, user_id, category_id, type, amount, description, transaction_date, created_at, updated_at
+    RETURNING id, user_id, category_id, type, amount, description, transaction_date, receipt_filename, created_at, updated_at
   `;
 
   const values = [
@@ -117,7 +118,7 @@ async function getTransactionsByUser({
   const whereClause = conditions.join(' AND ');
 
   const text = `
-    SELECT id, user_id, category_id, type, amount, description, transaction_date, created_at, updated_at
+    SELECT id, user_id, category_id, type, amount, description, transaction_date, receipt_filename, created_at, updated_at
     FROM transactions
     WHERE ${whereClause}
     ORDER BY transaction_date DESC, created_at DESC
@@ -127,10 +128,51 @@ async function getTransactionsByUser({
   return rows;
 }
 
+async function getTransactionByIdForUser({ id, user_id }) {
+  const text = `
+    SELECT id, user_id, category_id, type, amount, description, transaction_date, receipt_filename, created_at, updated_at
+    FROM transactions
+    WHERE id = $1 AND user_id = $2
+    LIMIT 1
+  `;
+  const values = [id, user_id];
+  const { rows } = await pool.query(text, values);
+  return rows[0] || null;
+}
+
+async function setReceiptFilename({ id, user_id, receipt_filename }) {
+  const text = `
+    UPDATE transactions
+    SET receipt_filename = $3,
+        updated_at = NOW()
+    WHERE id = $1 AND user_id = $2
+    RETURNING id, user_id, category_id, type, amount, description, transaction_date, receipt_filename, created_at, updated_at
+  `;
+  const values = [id, user_id, receipt_filename];
+  const { rows } = await pool.query(text, values);
+  return rows[0] || null;
+}
+
+async function clearReceiptFilename({ id, user_id }) {
+  const text = `
+    UPDATE transactions
+    SET receipt_filename = NULL,
+        updated_at = NOW()
+    WHERE id = $1 AND user_id = $2
+    RETURNING id, user_id, category_id, type, amount, description, transaction_date, receipt_filename, created_at, updated_at
+  `;
+  const values = [id, user_id];
+  const { rows } = await pool.query(text, values);
+  return rows[0] || null;
+}
+
 module.exports = {
   createTransaction,
   updateTransaction,
   deleteTransaction,
   getTransactionsByUser,
+  getTransactionByIdForUser,
+  setReceiptFilename,
+  clearReceiptFilename,
 };
 

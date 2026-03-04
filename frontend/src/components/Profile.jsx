@@ -9,11 +9,15 @@ export default function Profile({ onClose, onUpdate }) {
   const { user, loading, refetch } = useUser();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [form, setForm] = useState({ name: '', email: '' });
+  const [form, setForm] = useState({ name: '', email: '', email_budget_alerts: true });
 
   useEffect(() => {
     if (!user) return;
-    setForm({ name: user.name || '', email: user.email || '' });
+    setForm({
+      name: user.name || '',
+      email: user.email || '',
+      email_budget_alerts: user.email_budget_alerts !== false,
+    });
   }, [user]);
 
   const handleSubmit = async (e) => {
@@ -24,12 +28,19 @@ export default function Profile({ onClose, onUpdate }) {
       const payload = {};
       if (form.name.trim() !== (user?.name || '')) payload.name = form.name.trim();
       if (form.email.trim() !== (user?.email || '')) payload.email = form.email.trim();
+      if (form.email_budget_alerts !== (user?.email_budget_alerts !== false)) {
+        payload.email_budget_alerts = form.email_budget_alerts;
+      }
       if (Object.keys(payload).length === 0) {
         setMessage({ type: 'success', text: 'No changes to save.' });
         setSaving(false);
         return;
       }
-      const updated = await updateProfile({ name: payload.name, email: payload.email });
+      const updated = await updateProfile({
+        name: payload.name,
+        email: payload.email,
+        email_budget_alerts: payload.email_budget_alerts,
+      });
       await refetch();
       setMessage({ type: 'success', text: 'Profile updated.' });
       if (onUpdate) onUpdate(updated);
@@ -97,6 +108,18 @@ export default function Profile({ onClose, onUpdate }) {
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             className={inputClass}
           />
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            id="email_budget_alerts"
+            type="checkbox"
+            checked={form.email_budget_alerts}
+            onChange={(e) => setForm((f) => ({ ...f, email_budget_alerts: e.target.checked }))}
+            className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-emerald-600 focus:ring-emerald-500"
+          />
+          <label htmlFor="email_budget_alerts" className="text-sm text-slate-300">
+            Email me when I exceed a budget
+          </label>
         </div>
         <div className="flex gap-2">
           <button
