@@ -175,7 +175,11 @@ async function googleAuthCallback(req, res, next) {
 
     const token = generateToken({ userId: user.id, email: user.email });
 
-    const redirectUrl = new URL('/auth/google/callback', FRONTEND_APP_URL);
+    // After successful Google auth, send the user back to the
+    // login page on the frontend with the JWT in the query string.
+    // The frontend login page already knows how to read ?token=...
+    // and redirect into the dashboard.
+    const redirectUrl = new URL('/login', FRONTEND_APP_URL);
     redirectUrl.searchParams.set('token', token);
 
     return res.redirect(redirectUrl.toString());
