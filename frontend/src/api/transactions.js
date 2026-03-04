@@ -19,7 +19,16 @@ export async function getTransactions({ from, to, categoryId } = {}) {
   return Array.isArray(data) ? data : []
 }
 
-export async function addTransaction({ categoryId, type, amount, description, transactionDate, currencyCode } = {}) {
+export async function addTransaction({
+  categoryId,
+  type,
+  amount,
+  description,
+  transactionDate,
+  currencyCode,
+  isRecurring,
+  billingCycle,
+} = {}) {
   const payload = {
     categoryId,
     type,
@@ -27,11 +36,16 @@ export async function addTransaction({ categoryId, type, amount, description, tr
     description,
     transactionDate,
     currencyCode: currencyCode || 'INR',
+    isRecurring: !!isRecurring,
+    billingCycle: isRecurring ? billingCycle : undefined,
   }
   return apiPost('/transactions', payload)
 }
 
-export async function updateTransaction(id, { categoryId, type, amount, description, transactionDate, currencyCode } = {}) {
+export async function updateTransaction(
+  id,
+  { categoryId, type, amount, description, transactionDate, currencyCode, isRecurring, billingCycle } = {},
+) {
   if (!id) {
     throw new Error('Transaction id is required.')
   }
@@ -42,6 +56,8 @@ export async function updateTransaction(id, { categoryId, type, amount, descript
     description,
     transactionDate,
     currencyCode: currencyCode || 'INR',
+    isRecurring,
+    billingCycle: isRecurring ? billingCycle : undefined,
   }
   return apiPut(`/transactions/${id}`, payload)
 }

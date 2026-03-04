@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { getTransactions, addTransaction, updateTransaction, deleteTransaction, uploadReceipt, openReceipt } from '../api/transactions';
 import { getCategories, createCategory, updateCategory, ensureCategoryExists } from '../api/categories';
 import { getDashboardSummary, getDashboardMonthlyTrend } from '../api/dashboard';
-import RecurringBills from './RecurringBills';
 import { DEFAULT_CATEGORIES } from '../defaultCategories';
 import { useDashboardData, DASHBOARD_CACHE_TTL_MS } from '../context/DashboardDataContext';
 
@@ -48,6 +47,8 @@ export default function Dashboard() {
     date: new Date().toISOString().slice(0, 10),
     currencyCode: 'INR',
     newCategoryName: '',
+    isRecurring: false,
+    billingCycle: 'monthly',
   });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -57,6 +58,8 @@ export default function Dashboard() {
     description: '',
     date: '',
     currencyCode: 'INR',
+    isRecurring: false,
+    billingCycle: 'monthly',
   });
   const [filters, setFilters] = useState(cachedFilters || { from: '', to: '', categoryId: '' });
   const [summaryFromApi, setSummaryFromApi] = useState(null);
@@ -305,6 +308,8 @@ export default function Dashboard() {
         description: form.description.trim() || undefined,
         transactionDate: form.date,
         currencyCode: form.currencyCode || 'INR',
+        isRecurring: form.isRecurring,
+        billingCycle: form.isRecurring ? form.billingCycle : undefined,
       });
       setMessage({ type: 'success', text: 'Transaction added.' });
       setForm((f) => ({
@@ -312,6 +317,8 @@ export default function Dashboard() {
         amount: '',
         description: '',
         newCategoryName: '',
+        isRecurring: false,
+        billingCycle: 'monthly',
       }));
       fetchTransactions();
       refetchSummary();
@@ -331,6 +338,8 @@ export default function Dashboard() {
       description: t.description || '',
       date: (t.transactionDate || t.transaction_date || t.date || '').slice(0, 10),
       currencyCode: t.currencyCode || t.currency_code || 'INR',
+      isRecurring: Boolean(t.isRecurring || t.is_recurring),
+      billingCycle: t.billingCycle || t.billing_cycle || 'monthly',
     });
   };
 
@@ -351,6 +360,8 @@ export default function Dashboard() {
         description: editForm.description.trim() || undefined,
         transactionDate: editForm.date,
         currencyCode: editForm.currencyCode || 'INR',
+        isRecurring: editForm.isRecurring,
+        billingCycle: editForm.isRecurring ? editForm.billingCycle : undefined,
       });
       setMessage({ type: 'success', text: 'Transaction updated.' });
       setEditingId(null);
@@ -759,6 +770,41 @@ export default function Dashboard() {
                     className={inputClass}
                   />
                 </div>
+                <div className="flex items-center justify-between gap-3">
+                  <label className="inline-flex items-center gap-2 text-[11px] font-medium text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={form.isRecurring}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          isRecurring: e.target.checked,
+                        }))
+                      }
+                      className="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/40"
+                    />
+                    <span>Make this recurring</span>
+                  </label>
+
+                  {form.isRecurring && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-500">Every</span>
+                      <select
+                        value={form.billingCycle}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            billingCycle: e.target.value,
+                          }))
+                        }
+                        className={inputClass + ' w-32'}
+                      >
+                        <option value="monthly">Month</option>
+                        <option value="yearly">Year</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
                 <div>
                   <label htmlFor="description" className="mb-1 block text-[11px] font-medium text-slate-500">
                     Note <span className="text-slate-600">(optional)</span>
@@ -905,6 +951,41 @@ export default function Dashboard() {
                               className={inputClass + ' w-36'}
                             />
                           </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <label className="inline-flex items-center gap-2 text-[11px] font-medium text-slate-600">
+                              <input
+                                type="checkbox"
+                                checked={editForm.isRecurring}
+                                onChange={(e) =>
+                                  setEditForm((f) => ({
+                                    ...f,
+                                    isRecurring: e.target.checked,
+                                  }))
+                                }
+                                className="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/40"
+                              />
+                              <span>Recurring</span>
+                            </label>
+
+                            {editForm.isRecurring && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-slate-500">Every</span>
+                                <select
+                                  value={editForm.billingCycle}
+                                  onChange={(e) =>
+                                    setEditForm((f) => ({
+                                      ...f,
+                                      billingCycle: e.target.value,
+                                    }))
+                                  }
+                                  className={inputClass + ' w-32'}
+                                >
+                                  <option value="monthly">Month</option>
+                                  <option value="yearly">Year</option>
+                                </select>
+                              </div>
+                            )}
+                          </div>
                           <input
                             type="text"
                             placeholder="Note"
@@ -1034,7 +1115,6 @@ export default function Dashboard() {
         </section>
       </div>
 
-      <RecurringBills />
     </>
   );
 }

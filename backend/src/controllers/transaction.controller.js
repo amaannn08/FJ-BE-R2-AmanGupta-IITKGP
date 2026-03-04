@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const transactionModel = require('../models/transaction.model');
+const recurringScheduleModel = require('../models/recurringSchedule.model');
 const categoryModel = require('../models/category.model');
 const notificationService = require('../services/notification.service');
 const { RECEIPTS_UPLOAD_DIR } = require('../config/uploads');
@@ -28,6 +29,20 @@ function isValidDateString(value) {
   return !Number.isNaN(date.getTime());
 }
 
+function computeNextDueDate(startDateString, billingCycle) {
+  if (!isValidDateString(startDateString)) {
+    return null;
+  }
+  const base = new Date(startDateString);
+  const next = new Date(base);
+  if (billingCycle === 'yearly') {
+    next.setFullYear(next.getFullYear() + 1);
+  } else {
+    next.setMonth(next.getMonth() + 1);
+  }
+  return next.toISOString().slice(0, 10);
+}
+
 async function createTransaction(req, res, next) {
   try {
     const userId = req.user && req.user.userId;
@@ -38,6 +53,8 @@ async function createTransaction(req, res, next) {
       description,
       transactionDate,
       currencyCode,
+      isRecurring,
+      billingCycle,
     } = req.body || {};
 
     if (!userId) {
@@ -69,6 +86,18 @@ async function createTransaction(req, res, next) {
       return res
         .status(400)
         .json({ success: false, message: 'transactionDate must be a valid date string.' });
+    }
+
+    const normalizedIsRecurring = Boolean(isRecurring);
+    let normalizedBillingCycle = null;
+    if (normalizedIsRecurring) {
+      if (billingCycle !== 'monthly' && billingCycle !== 'yearly') {
+        return res.status(400).json({
+          success: false,
+          message: "billingCycle must be 'monthly' or 'yearly' when isRecurring is true.",
+        });
+      }
+      normalizedBillingCycle = billingCycle;
     }
 
     // Negative amount rules
@@ -155,6 +184,21 @@ async function createTransaction(req, res, next) {
         .catch(() => {});
     }
 
+    if (normalizedIsRecurring && normalizedBillingCycle) {
+      const nextDueDate = computeNextDueDate(transactionDate, normalizedBillingCycle);
+      if (nextDueDate) {
+        const scheduleId = uuidv4();
+        await recurringScheduleModel.createRecurringSchedule({
+          id: scheduleId,
+          user_id: userId,
+          template_transaction_id: transaction.id,
+          billing_cycle: normalizedBillingCycle,
+          next_due_date: nextDueDate,
+          is_active: true,
+        });
+      }
+    }
+
     return res.status(201).json({ success: true, data: transaction });
   } catch (err) {
     return next(err);
@@ -172,6 +216,8 @@ async function updateTransaction(req, res, next) {
       description,
       transactionDate,
       currencyCode,
+      isRecurring,
+      billingCycle,
     } = req.body || {};
 
     if (!userId) {
@@ -244,6 +290,19 @@ async function updateTransaction(req, res, next) {
 
     const amountRounded = roundToTwoDecimals(parsedAmount);
 
+    const normalizedIsRecurring =
+      typeof isRecurring === 'boolean' ? isRecurring : null;
+    let normalizedBillingCycle = null;
+    if (normalizedIsRecurring) {
+      if (billingCycle !== 'monthly' && billingCycle !== 'yearly') {
+        return res.status(400).json({
+          success: false,
+          message: "billingCycle must be 'monthly' or 'yearly' when isRecurring is true.",
+        });
+      }
+      normalizedBillingCycle = billingCycle;
+    }
+
     const normalizedCurrency =
       typeof currencyCode === 'string' && currencyCode.trim()
         ? currencyCode.trim().toUpperCase()
@@ -283,6 +342,39 @@ async function updateTransaction(req, res, next) {
 
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Transaction not found.' });
+    }
+
+    const existingSchedule = await recurringScheduleModel.findScheduleByTemplateForUser({
+      user_id: userId,
+      template_transaction_id: transactionId,
+    });
+
+    if (normalizedIsRecurring === true && !existingSchedule) {
+      const effectiveBillingCycle = normalizedBillingCycle || 'monthly';
+      const nextDueDate = computeNextDueDate(transactionDate, effectiveBillingCycle);
+      if (nextDueDate) {
+        const scheduleId = uuidv4();
+        await recurringScheduleModel.createRecurringSchedule({
+          id: scheduleId,
+          user_id: userId,
+          template_transaction_id: updated.id,
+          billing_cycle: effectiveBillingCycle,
+          next_due_date: nextDueDate,
+          is_active: true,
+        });
+      }
+    } else if (normalizedIsRecurring === false && existingSchedule) {
+      await recurringScheduleModel.setRecurringScheduleActive({
+        id: existingSchedule.id,
+        user_id: userId,
+        is_active: false,
+      });
+    } else if (normalizedIsRecurring === true && existingSchedule && normalizedBillingCycle) {
+      await recurringScheduleModel.updateRecurringSchedule({
+        id: existingSchedule.id,
+        user_id: userId,
+        billing_cycle: normalizedBillingCycle,
+      });
     }
 
     if (type === 'expense') {
