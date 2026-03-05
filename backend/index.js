@@ -23,6 +23,10 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Health check passed' });
 });
 
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Health check passed' });
+});
+
 app.get('/', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Finance Tracker API is running' });
 });
