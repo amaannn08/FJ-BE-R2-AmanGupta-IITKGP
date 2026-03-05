@@ -1,67 +1,116 @@
 import React from 'react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 export default function MonthlyIncomeExpenseChart({
   monthlyChartData,
-  maxBar,
-  isSingleMonthChart,
   formatCurrency,
 }) {
-  if (!monthlyChartData || monthlyChartData.length === 0) return null;
+  if (!monthlyChartData || monthlyChartData.length === 0) {
+    return (
+      <section className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm flex flex-col items-center justify-center h-full min-h-[300px]">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 w-full text-left">
+          Income vs expense by month
+        </h2>
+        <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm">
+          <span>No Data Available</span>
+        </div>
+      </section>
+    );
+  }
+
+  // Ensure data is sorted by date
+  const sortedData = [...monthlyChartData].sort((a, b) => 
+    new Date(a.period).getTime() - new Date(b.period).getTime()
+  );
+
+  // Format date for X-axis (e.g., 'Mar')
+  const formatXAxis = (tickItem) => {
+    if (!tickItem) return '';
+    const date = new Date(tickItem + '-01'); // Append day to make it parseable if it's YYYY-MM
+    return date.toLocaleDateString('en-US', { month: 'short' });
+  };
+
+  // Compact currency formatter for Y-axis (e.g., 12k)
+  const formatYAxis = (value) => {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+    return value;
+  };
 
   return (
-    <section className="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+    <section className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm flex flex-col h-full min-h-[300px]">
       <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
         Income vs expense by month
       </h2>
-      <div
-        className={`flex items-end pb-2 ${
-          isSingleMonthChart ? 'justify-center gap-4' : 'gap-1 overflow-x-auto'
-        }`}
-        style={{ minHeight: '80px' }}
-      >
-        {monthlyChartData.map((m) => (
-          <div
-            key={m.period}
-            className={`flex flex-col items-center gap-0.5 ${
-              isSingleMonthChart ? 'w-20' : 'flex-1 min-w-0'
-            }`}
+      <div className="w-full h-64 flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={sortedData}
+            margin={{
+              top: 5,
+              right: 10,
+              left: -20,
+              bottom: 0,
+            }}
+            barCategoryGap="20%"
           >
-            <div
-              className={`flex items-end justify-center gap-0.5 ${
-                isSingleMonthChart ? 'w-14' : 'w-full'
-              }`}
-              style={{ height: '56px' }}
-            >
-              <div
-                className="w-full max-w-[12px] rounded-t bg-emerald-500/80 transition-all"
-                style={{
-                  height: `${(m.income / maxBar) * 56}px`,
-                  minHeight: m.income > 0 ? '4px' : 0,
-                }}
-                title={`Income: ${formatCurrency(m.income)}`}
-              />
-              <div
-                className="w-full max-w-[12px] rounded-t bg-rose-500/80 transition-all"
-                style={{
-                  height: `${(m.expense / maxBar) * 56}px`,
-                  minHeight: m.expense > 0 ? '4px' : 0,
-                }}
-                title={`Expense: ${formatCurrency(m.expense)}`}
-              />
-            </div>
-            <span className="text-[10px] text-slate-500">{m.period}</span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-2 flex gap-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded bg-emerald-500/80" /> Income
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded bg-rose-500/80" /> Expense
-        </span>
+            {/* No X-axis labels requested */}
+            <XAxis 
+              dataKey="period" 
+              tickFormatter={formatXAxis} 
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 10, fill: '#64748b' }} 
+              interval={0}
+            />
+            <YAxis 
+              tickFormatter={formatYAxis} 
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 10, fill: '#64748b' }}
+            />
+            <Tooltip
+              formatter={(value) => [formatCurrency(value), undefined]}
+              labelFormatter={(label) => {
+                 if (!label) return '';
+                 const date = new Date(label + '-01');
+                 return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+              }}
+              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+              cursor={{ fill: '#f1f5f9' }}
+            />
+            <Legend 
+              verticalAlign="top" 
+              align="right"
+              iconType="circle"
+              iconSize={8}
+              wrapperStyle={{ fontSize: '11px', paddingBottom: '10px' }}
+            />
+            <Bar 
+              dataKey="income" 
+              name="Income" 
+              fill="#10b981" 
+              radius={[4, 4, 0, 0]} 
+              maxBarSize={40}
+            />
+            <Bar 
+              dataKey="expense" 
+              name="Expense" 
+              fill="#f43f5e" 
+              radius={[4, 4, 0, 0]} 
+              maxBarSize={40}
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </section>
   );
 }
-

@@ -6,6 +6,7 @@ import { DEFAULT_CATEGORIES } from '../defaultCategories';
 import { useDashboardData, DASHBOARD_CACHE_TTL_MS } from '../context/DashboardDataContext';
 import AddTransactionCard from './AddTransactionCard';
 import MonthlyIncomeExpenseChart from './MonthlyIncomeExpenseChart';
+import IncomeExpensePieChart from './IncomeExpensePieChart';
 import RecentTransactionsList from './RecentTransactionsList';
 import FinancialAdvisor from './FinancialAdvisor';
 
@@ -499,8 +500,8 @@ export default function Dashboard() {
 
   const monthlyDataSingle = monthlyData.filter((m) => m.period === currentMonthKey);
   const monthlyChartData = monthlyDataSingle.length > 0 ? monthlyDataSingle : monthlyData.slice(-1);
-  const maxBar = Math.max(1, ...monthlyChartData.flatMap((m) => [m.income, m.expense]));
-  const isSingleMonthChart = monthlyChartData.length === 1;
+  // const maxBar = Math.max(1, ...monthlyChartData.flatMap((m) => [m.income, m.expense])); // Not needed for recharts
+  // const isSingleMonthChart = monthlyChartData.length === 1; // Not needed for recharts
 
   const inputClass =
     'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/25';
@@ -578,12 +579,17 @@ export default function Dashboard() {
 
         {/* Right column: chart on top, scrollable recent transactions below */}
         <div className="min-w-0 flex flex-col gap-4">
-          <MonthlyIncomeExpenseChart
-            monthlyChartData={monthlyChartData}
-            maxBar={maxBar}
-            isSingleMonthChart={isSingleMonthChart}
-            formatCurrency={formatCurrency}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            <MonthlyIncomeExpenseChart
+              monthlyChartData={monthlyChartData}
+              formatCurrency={formatCurrency}
+            />
+            <IncomeExpensePieChart
+              income={totalIncome}
+              expense={totalExpense}
+              formatCurrency={formatCurrency}
+            />
+          </div>
           <RecentTransactionsList
             transactions={transactions}
             filters={filters}
