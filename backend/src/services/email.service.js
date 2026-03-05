@@ -130,9 +130,67 @@ async function sendBudgetOverrunEmail({
   });
 }
 
+async function sendAnomalyAlertEmail({
+  to,
+  userName,
+  transaction,
+  anomalyType,
+  details,
+}) {
+  const transactionDate = new Date(transaction.transaction_date).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const amountStr = formatCurrency(transaction.amount);
+
+  let alertMessage = '';
+  if (anomalyType === 'high_value') {
+    alertMessage = `We detected a transaction of <strong>${amountStr}</strong>, which is significantly higher than your recent spending habits (Average: ${formatCurrency(
+      details.mean
+    )}).`;
+  } else if (anomalyType === 'high_frequency') {
+    alertMessage = `We noticed a sudden burst of activity. <strong>${details.count} transactions</strong> were created in the last 5 minutes.`;
+  }
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+      <div style="background-color: #ef4444; padding: 20px; text-align: center;">
+        <h2 style="color: white; margin: 0;">Suspicious Activity Alert</h2>
+      </div>
+      <div style="padding: 24px;">
+        <p>Hi ${userName ? String(userName).replace(/</g, '&lt;') : 'there'},</p>
+        <p style="font-size: 16px; color: #374151;">${alertMessage}</p>
+        
+        <div style="background-color: #f3f4f6; padding: 16px; border-radius: 6px; margin: 24px 0;">
+          <h3 style="margin-top: 0; color: #111827;">Transaction Details</h3>
+          <p style="margin: 8px 0;"><strong>Amount:</strong> ${amountStr}</p>
+          <p style="margin: 8px 0;"><strong>Date:</strong> ${transactionDate}</p>
+          <p style="margin: 8px 0;"><strong>Description:</strong> ${
+            transaction.description || 'N/A'
+          }</p>
+        </div>
+
+        <p>If you made this transaction, you can safely ignore this email.</p>
+        <p>If you did not authorize this, please review your account immediately.</p>
+      </div>
+    </div>
+  `;
+
+  return sendMail({
+    to,
+    subject: `FinanceTracker – Unusual Activity Detected: ${
+      anomalyType === 'high_value' ? 'High Value Transaction' : 'High Frequency Activity'
+    }`,
+    html,
+  });
+}
+
 module.exports = {
   generateOtp,
   sendOtpEmail,
   sendMail,
   sendBudgetOverrunEmail,
+  sendAnomalyAlertEmail,
 };

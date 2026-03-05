@@ -178,13 +178,39 @@ async function clearReceiptFilename({ id, user_id }) {
   return rows[0] || null;
 }
 
+async function getRecentTransactionsForAnomaly({ user_id, limit = 50 }) {
+  const text = `
+    SELECT id, amount, transaction_date, created_at, description
+    FROM transactions
+    WHERE user_id = $1
+    ORDER BY created_at DESC
+    LIMIT $2
+  `;
+  const values = [user_id, limit];
+  const { rows } = await pool.query(text, values);
+  return rows;
+}
+
+async function deleteAllTransactions({ user_id }) {
+  const text = `
+    DELETE FROM transactions
+    WHERE user_id = $1
+    RETURNING id, receipt_filename
+  `;
+  const values = [user_id];
+  const { rows } = await pool.query(text, values);
+  return rows;
+}
+
 module.exports = {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  deleteAllTransactions,
   getTransactionsByUser,
   getTransactionByIdForUser,
   setReceiptFilename,
   clearReceiptFilename,
+  getRecentTransactionsForAnomaly,
 };
 

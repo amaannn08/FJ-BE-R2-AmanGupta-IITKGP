@@ -21,6 +21,7 @@ export default function RecentTransactionsList({
   formatDate,
   findCategoryName,
   fetchTransactions,
+  handleDeleteAll,
 }) {
   return (
     <section className="min-w-0 flex flex-col">
@@ -67,7 +68,14 @@ export default function RecentTransactionsList({
             onClick={() => setFilters({ from: '', to: '', categoryId: '' })}
             className="rounded-lg border border-slate-600 px-2 py-1.5 text-xs text-slate-800 hover:bg-slate-700/60 hover:text-slate-200"
           >
-            Clear
+            Clear Filters
+          </button>
+          <button
+            type="button"
+            onClick={handleDeleteAll}
+            className="rounded-lg border border-rose-600 px-2 py-1.5 text-xs text-rose-600 hover:bg-rose-600 hover:text-white"
+          >
+            Delete All
           </button>
           <button
             type="button"

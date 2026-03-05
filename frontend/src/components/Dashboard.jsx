@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getTransactions, addTransaction, updateTransaction, deleteTransaction, uploadReceipt, openReceipt } from '../api/transactions';
+import { getTransactions, addTransaction, updateTransaction, deleteTransaction, deleteAllTransactions, uploadReceipt, openReceipt } from '../api/transactions';
 import { getCategories, createCategory, updateCategory, ensureCategoryExists } from '../api/categories';
 import { getDashboardSummary, getDashboardMonthlyTrend } from '../api/dashboard';
 import { DEFAULT_CATEGORIES } from '../defaultCategories';
@@ -438,6 +438,23 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!window.confirm('Are you sure you want to delete ALL transactions? This action cannot be undone.')) return;
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+    try {
+      await deleteAllTransactions();
+      setMessage({ type: 'success', text: 'All transactions deleted.' });
+      setEditingId(null);
+      fetchTransactions();
+      refetchSummary();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to delete all transactions.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const totalIncomeFallback = transactions
     .filter((t) => t.type === 'income')
     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -575,6 +592,7 @@ export default function Dashboard() {
             handleEditSubmit={handleEditSubmit}
             handleEdit={handleEdit}
             handleDelete={handleDelete}
+            handleDeleteAll={handleDeleteAll}
             handleUploadReceipt={handleUploadReceipt}
             openReceipt={openReceipt}
             formatCurrency={formatCurrency}

@@ -5,6 +5,7 @@ const {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  deleteAllTransactions,
   getTransactions,
 } = require('../controllers/transaction.controller');
 const {
@@ -17,6 +18,8 @@ const {
 const router = express.Router();
 
 router.use(authenticateToken);
+
+router.delete('/transactions', deleteAllTransactions);
 
 router.post('/transactions', createTransaction);
 

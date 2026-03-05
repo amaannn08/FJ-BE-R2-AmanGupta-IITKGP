@@ -7,6 +7,7 @@ const transactionModel = require('../models/transaction.model');
 const recurringScheduleModel = require('../models/recurringSchedule.model');
 const categoryModel = require('../models/category.model');
 const notificationService = require('../services/notification.service');
+const anomalyService = require('../services/anomaly.service');
 const { RECEIPTS_UPLOAD_DIR } = require('../config/uploads');
 
 function parseAmount(amount) {
@@ -183,6 +184,14 @@ async function createTransaction(req, res, next) {
         })
         .catch(() => {});
     }
+
+    // Anomaly Detection
+    void anomalyService
+      .checkAndSendAnomalyAlert({
+        user_id: userId,
+        transaction,
+      })
+      .catch(() => {});
 
     if (normalizedIsRecurring && normalizedBillingCycle) {
       const nextDueDate = computeNextDueDate(transactionDate, normalizedBillingCycle);
@@ -458,10 +467,39 @@ async function getTransactions(req, res, next) {
   }
 }
 
+async function deleteAllTransactions(req, res, next) {
+  try {
+    const userId = req.user && req.user.userId;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized.' });
+    }
+
+    const deletedRows = await transactionModel.deleteAllTransactions({ user_id: userId });
+
+    for (const row of deletedRows) {
+      if (row.receipt_filename) {
+        const safeName = path.basename(row.receipt_filename);
+        const filePath = path.join(RECEIPTS_UPLOAD_DIR, safeName);
+        try {
+          await fs.promises.unlink(filePath);
+        } catch {
+          // ignore missing/failed delete
+        }
+      }
+    }
+
+    return res.json({ success: true, message: `Deleted ${deletedRows.length} transactions.` });
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  deleteAllTransactions,
   getTransactions,
 };
 

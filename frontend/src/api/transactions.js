@@ -69,6 +69,10 @@ export async function deleteTransaction(id) {
   return apiDelete(`/transactions/${id}`)
 }
 
+export async function deleteAllTransactions() {
+  return apiDelete('/transactions')
+}
+
 export async function uploadReceipt(transactionId, file) {
   if (!transactionId) {
     throw new Error('Transaction id is required to upload a receipt.')
