@@ -334,6 +334,10 @@ export default function Dashboard() {
   };
 
   const handleEdit = (t) => {
+    if (!t) {
+      setEditingId(null);
+      return;
+    }
     setEditingId(t.id);
     setEditForm({
       type: t.type,
