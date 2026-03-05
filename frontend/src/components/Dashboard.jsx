@@ -7,6 +7,7 @@ import { useDashboardData, DASHBOARD_CACHE_TTL_MS } from '../context/DashboardDa
 import AddTransactionCard from './AddTransactionCard';
 import MonthlyIncomeExpenseChart from './MonthlyIncomeExpenseChart';
 import RecentTransactionsList from './RecentTransactionsList';
+import FinancialAdvisor from './FinancialAdvisor';
 
 function formatDate(str) {
   if (!str) return '—';
@@ -521,6 +522,8 @@ export default function Dashboard() {
         </div>
       )}
 
+      <FinancialAdvisor />
+
       {/* Summary: three cards */}
       <section className="mb-6">
           <div className="grid grid-cols-3 gap-4">
@@ -602,7 +605,6 @@ export default function Dashboard() {
           />
         </div>
       </div>
-
     </>
   );
 }

@@ -130,7 +130,7 @@ jobs:
           sleep 10
 
           for i in {1..2}; do
-            echo "Attempt $i of 2..."
+            echo "Attempt $i of 5..."
             response=$(curl -s -o /dev/null -w "%{http_code}" https://api.amannngupta.online/health || echo "000")
 
             if [ "$response" = "200" ] || [ "$response" = "301" ] || [ "$response" = "302" ]; then

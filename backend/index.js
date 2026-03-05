@@ -11,6 +11,7 @@ const reportRoutes = require('./src/routes/reportRoutes');
 const budgetRoutes = require('./src/routes/budgetRoutes');
 const recurringScheduleRoutes = require('./src/routes/recurringScheduleRoutes');
 const recurringBillRoutes = require('./src/routes/recurringBillRoutes');
+const analysisRoutes = require('./src/routes/analysisRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +44,7 @@ app.use('/', reportRoutes);
 app.use('/', budgetRoutes);
 app.use('/', recurringScheduleRoutes);
 app.use('/', recurringBillRoutes);
+app.use('/', analysisRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
