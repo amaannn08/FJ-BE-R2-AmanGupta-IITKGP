@@ -19,6 +19,10 @@ app.use(cors());
 app.use(express.json());
 
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Health check passed' });
+});
+
 app.get('/', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Finance Tracker API is running' });
 });

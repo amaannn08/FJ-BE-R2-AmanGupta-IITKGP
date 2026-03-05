@@ -104,6 +104,10 @@ jobs:
 
             mkdir -p logs
 
+            # Cleanup legacy process named 'index' if it exists to avoid port conflicts
+            pm2 stop index > /dev/null 2>&1 || true
+            pm2 delete index > /dev/null 2>&1 || true
+
             # Start / reload with PM2 (app name: finance-backend)
             if pm2 describe finance-backend > /dev/null 2>&1; then
               echo "Reloading PM2 app (finance-backend)..."
@@ -127,7 +131,7 @@ jobs:
 
           for i in {1..2}; do
             echo "Attempt $i of 2..."
-            response=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST} 2>/dev/null || echo "000")
+            response=$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_HOST}/health 2>/dev/null || echo "000")
 
             if [ "$response" = "200" ] || [ "$response" = "301" ] || [ "$response" = "302" ]; then
               echo "✅ Deployment successful! App is responding with status: $response"
