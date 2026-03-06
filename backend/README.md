@@ -1,80 +1,143 @@
-# FinanceTracker Auth MVP
+# Finance Tracker Backend
 
-This backend provides a basic authentication MVP using **Express**, **Postgres (Neon via `pg` Pool)**, **bcrypt**, and **JWT**.
+This is the backend for the Finance Tracker application, built with Node.js, Express, and PostgreSQL. It provides a RESTful API for managing transactions, budgets, categories, reports, and recurring bills.
 
-## Environment Variables
+## 🚀 Tech Stack
 
-Create a `.env` file in the project root with at least the following values:
+-   **Runtime:** Node.js
+-   **Framework:** Express.js
+-   **Database:** PostgreSQL
+-   **ORM/Query Builder:** `pg` (node-postgres) with raw SQL queries and migrations
+-   **Authentication:** JWT (JSON Web Tokens), Google OAuth 2.0
+-   **Email Service:** Nodemailer
+-   **AI Integration:** Google Generative AI (Gemini) for analysis
 
-```bash
-PORT=3000
-DATABASE_URL=postgres://<user>:<password>@<host>/<database>
-JWT_SECRET=<a-strong-random-secret>
+## 📂 Project Structure
 
-# Optional overrides
-BCRYPT_SALT_ROUNDS=10
-JWT_EXPIRES_IN=1h
-
-# Google OAuth (optional, for \"Continue with Google\")
-GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
-GOOGLE_CLIENT_SECRET=<your-google-oauth-client-secret>
-GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
-FRONTEND_APP_URL=http://localhost:5173
-
-# Email (nodemailer) for OTP verification and budget overrun alerts
-# If not set, emails are logged in dev and not sent
-EMAIL_ID=<your-smtp-email e.g. Gmail address>
-EMAIL_PASS=<app-password-or-smtp-password>
+```
+backend/
+├── index.js                # Application entry point
+├── src/
+│   ├── config/             # Configuration files (DB, AI, etc.)
+│   ├── controllers/        # Request handlers
+│   ├── middleware/         # Custom middleware (Auth, etc.)
+│   ├── models/             # Database models and schema definitions
+│   ├── routes/             # API route definitions
+│   ├── services/           # Business logic services
+│   └── db.js               # Database connection pool
+├── migrations/             # SQL migration files
+├── scripts/                # Utility scripts (migrations, etc.)
+├── uploads/                # Directory for file uploads (e.g., receipts)
+└── package.json            # Dependencies and scripts
 ```
 
-> Never commit your `.env` file or share these secrets.
+## 🛠️ Prerequisites
 
-Budget overrun notifications use the same email config as OTP: when a user exceeds a budget for an expense category (after adding or editing an expense), they receive at most one email per category per month if `EMAIL_ID` and `EMAIL_PASS` are set. Users can turn this off in Profile via "Email me when I exceed a budget".
+-   [Node.js](https://nodejs.org/) (v18 or higher recommended)
+-   [PostgreSQL](https://www.postgresql.org/) (v14 or higher recommended)
 
-## Database Setup (Neon / Postgres)
+## ⚙️ Setup & Installation
 
-Run the following SQL in your Neon Postgres database to create the `users` table:
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd finance-tracker/backend
+    ```
 
-```sql
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
+3.  **Configure Environment Variables:**
+    Create a `.env` file in the root of the `backend` directory. You can use the following template:
 
-After creating the base `users` table, run the SQL migrations in the `migrations/` folder
-(`npm run migrate:up`) to add email verification support, email OTPs, and Google OAuth
-columns (`google_id`, `avatar_url`, and nullable `password_hash` for Google-only accounts).
+    ```env
+    PORT=3000
+    DATABASE_URL=postgres://user:password@localhost:5432/finance_tracker
+    
+    # JWT Configuration
+    JWT_SECRET=your_jwt_secret_key
+    
+    # Google OAuth (for Sign in with Google)
+    GOOGLE_CLIENT_ID=your_google_client_id
+    GOOGLE_CLIENT_SECRET=your_google_client_secret
+    GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
+    
+    # Email Service (for OTPs and Notifications)
+    EMAIL_HOST=smtp.example.com
+    EMAIL_PORT=587
+    EMAIL_USER=your_email@example.com
+    EMAIL_PASS=your_email_password
+    
+    # AI Integration
+    GEMINI_API_KEY=your_gemini_api_key
+    
+    # FX Rates (optional overrides, defaults provided in code)
+    # FX_RATE_INR=1
+    # FX_RATE_USD_INR=83.5
+    # FX_RATE_EUR_INR=90.0
+    ```
 
-## Routes
+4.  **Database Setup:**
+    Run the migration script to set up the database schema:
+    ```bash
+    npm run migrate:up
+    ```
 
-The API exposes the following routes:
+## 🏃‍♂️ Running the Server
 
-- `POST /signup` – Register a new user with `name`, `email`, `password`.
-- `POST /signin` – Log in with `email` and `password`.
-- `GET /getProfile` – Get the authenticated user's profile.
-- `PUT /updateProfile` – Update the authenticated user's `name` and/or `email`.
-- `DELETE /deleteProfile` – Delete the authenticated user's profile.
+-   **Development Mode** (with hot-reload using `nodemon`):
+    ```bash
+    npm run dev
+    ```
 
-Authentication-protected routes expect a JWT in the `Authorization` header:
+-   **Production Mode:**
+    ```bash
+    npm start
+    ```
 
-```http
-Authorization: Bearer <token>
-```
+The server will start on `http://localhost:3000` (or the port specified in `.env`).
 
-## Password Rules
+## 📡 API Endpoints Overview
 
-Passwords must:
+### Authentication
+-   `POST /signup` - Register a new user
+-   `POST /signin` - Login with email/password
+-   `POST /auth/send-otp` - Send OTP for verification
+-   `POST /auth/verify-otp` - Verify OTP
+-   `GET /auth/google` - Initiate Google OAuth flow
 
-- Be at least 8 characters long.
-- Contain at least one uppercase letter.
-- Contain at least one lowercase letter.
-- Contain at least one digit.
-- Contain at least one special character.
+### Transactions
+-   `GET /transactions` - List transactions (supports filtering)
+-   `POST /transactions` - Create a new transaction
+-   `PUT /transactions/:id` - Update a transaction
+-   `DELETE /transactions/:id` - Delete a transaction
+-   `POST /transactions/:id/receipt` - Upload a receipt image
 
+### Budgets & Categories
+-   `GET /budgets` - Get budget details
+-   `POST /budgets` - Set/Update budget
+-   `GET /categories` - List transaction categories
+
+### Reports & Dashboard
+-   `GET /dashboard` - Get summary data for the dashboard
+-   `GET /reports/monthly` - Get monthly financial reports
+-   `GET /analysis` - AI-powered financial analysis
+
+## 🔄 Database Migrations
+
+The project uses a custom migration script located in `scripts/migrate.js`.
+
+-   **Apply Migrations:** `npm run migrate:up`
+-   **Rollback Migrations:** `npm run migrate:down`
+
+Migrations are stored in the `migrations/` folder as SQL files (e.g., `001_init_base_schema.sql`).
+
+## 🤝 Contributing
+
+1.  Fork the repository.
+2.  Create a new branch (`git checkout -b feature/your-feature`).
+3.  Commit your changes (`git commit -m 'Add some feature'`).
+4.  Push to the branch (`git push origin feature/your-feature`).
+5.  Open a Pull Request.
